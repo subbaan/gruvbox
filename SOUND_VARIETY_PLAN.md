@@ -114,6 +114,12 @@ Observed while testing: a Busy phrase in Phrygian can sit on just two pitches
   EnvelopeFilter, Phaser, Flanger), `effects/tape_comp.go` (TapeEcho,
   Compressor); tests in `effects/pedals_test.go`. All output fully wet; the
   track's FX mix blends.
+- Output level (alpha.54): every track mix goes through the master bus in
+  `groove/master.go` (+9 dB make-up, look-ahead limiter at -1 dBFS) for both
+  playback and export. Judge new sounds and level rules against that: a
+  track that is much louder than its neighbours now drives the limiter
+  instead of the old ±0.98 hard clip. `TestGeneratedGroovesComeOutAtANormalLevel`
+  expects RMS between -24 and -12 dBFS.
 - Drive pedals are level-matched: ~1 s input/output power followers set a
   makeup gain and Level trims ±12 dB around it (`levelMatch`). A fixed output
   calibration was tried first; it only fitted one drive setting and source.

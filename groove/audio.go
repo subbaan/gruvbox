@@ -89,10 +89,11 @@ type Player struct {
 	barsPlayed                                                uint64 // audio thread only; since Play
 	barClock                                                  atomic.Uint64
 	readBytes                                                 atomic.Uint64
+	master                                                    masterBus // audio thread only
 }
 
 func NewPlayer() *Player {
-	p := &Player{cache: map[string]*voice{}, fxCache: map[effectKey]*effectVoice{}, random: 1, offset: BlockSize * 4}
+	p := &Player{cache: map[string]*voice{}, fxCache: map[effectKey]*effectVoice{}, random: 1, offset: BlockSize * 4, master: newMasterBus()}
 	p.queuedPattern.Store(-1)
 	p.currentSection.Store(-1)
 	p.currentBar.Store(1)
@@ -397,7 +398,15 @@ func (v *voice) parameter(id string, value float64) {
 
 // Render performs no I/O, locking or heap allocation. It is also usable offline
 // for timing, DSP and concurrency tests without opening an audio device.
+// Render fills output with the next block: the track mix through the master
+// bus (make-up gain and limiter), delayed by masterLatency frames.
 func (p *Player) Render(output []float32) {
+	p.renderMix(output)
+	p.master.process(output)
+}
+
+// renderMix sums the tracks and any audition before the master bus.
+func (p *Player) renderMix(output []float32) {
 	firstFrame := p.renderedFrames
 	p.renderedFrames += uint64(len(output) / 2)
 	restart := p.restart.Swap(false)
@@ -527,8 +536,6 @@ func (p *Player) Render(output []float32) {
 			output[frame*2] += left
 			output[frame*2+1] += right
 		}
-		output[frame*2] = max(-.98, min(.98, output[frame*2]))
-		output[frame*2+1] = max(-.98, min(.98, output[frame*2+1]))
 		p.barPhase += project.BPM / (60 * SampleRate)
 	}
 	p.barClock.Store(p.barsPlayed<<16 | uint64(min(65535, p.barPhase/4*65536)))

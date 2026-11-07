@@ -109,10 +109,8 @@ func TestDualLivePublicationAndExportTail(t *testing.T) {
 	}
 	player.SetPlaying(false)
 	player.Render(out[:])
-	for _, v := range out {
-		if v != 0 {
-			t.Fatal("stop left Dual audio")
-		}
+	if !silentAfterMasterLatency(out[:]) {
+		t.Fatal("stop left Dual audio")
 	}
 }
 

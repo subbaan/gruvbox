@@ -110,6 +110,21 @@ func RenderWAV(ctx context.Context, writer io.Writer, project Project, song bool
 	total := frames + tail
 	done := int64(0)
 	lastProgress := -1.
+	// The master bus lags by masterLatency frames: drop its first output and
+	// flush it with silence at the end, so the file lines up with the groove
+	// (an exported loop still starts on its downbeat and loops cleanly).
+	skip, written := int64(masterLatency), int64(0)
+	emit := func(out []float32) error {
+		player.master.process(out)
+		drop := min(skip, int64(len(out)/2))
+		skip -= drop
+		keep := min(int64(len(out)/2)-drop, total-written)
+		for i, sample := range out[drop*2 : (drop+keep)*2] {
+			binary.LittleEndian.PutUint16(encoded[i*2:], uint16(int16(sample*32767)))
+		}
+		written += keep
+		return writeWAVBytes(writer, encoded[:keep*4])
+	}
 	for _, phase := range []struct {
 		count int64
 		tail  bool
@@ -127,12 +142,9 @@ func RenderWAV(ctx context.Context, writer io.Writer, project Project, song bool
 			if phase.tail {
 				player.renderTail(out)
 			} else {
-				player.Render(out)
+				player.renderMix(out)
 			}
-			for i, sample := range out {
-				binary.LittleEndian.PutUint16(encoded[i*2:], uint16(int16(sample*32767)))
-			}
-			if err = writeWAVBytes(writer, encoded[:count*4]); err != nil {
+			if err = emit(out); err != nil {
 				return err
 			}
 			remaining -= int64(count)
@@ -144,7 +156,9 @@ func RenderWAV(ctx context.Context, writer io.Writer, project Project, song bool
 			}
 		}
 	}
-	return nil
+	flush := audio[:masterLatency*2]
+	clear(flush)
+	return emit(flush)
 }
 func writeWAVBytes(writer io.Writer, data []byte) error {
 	n, err := writer.Write(data)
@@ -179,8 +193,6 @@ func (p *Player) renderTail(output []float32) {
 			output[frame*2] += left
 			output[frame*2+1] += right
 		}
-		output[frame*2] = max(-.98, min(.98, output[frame*2]))
-		output[frame*2+1] = max(-.98, min(.98, output[frame*2+1]))
 	}
 }
 func (t *playTrack) renderSample() (float32, float32) {

@@ -177,7 +177,7 @@ func TestSamplerGateAndAllocationFreePublication(t *testing.T) {
 	player.SetPlaying(true)
 	var out [BlockSize * 2]float32
 	player.Render(out[:])
-	if out[0] == 0 {
+	if out[masterLatency*2] == 0 {
 		t.Fatal("sampler did not render")
 	}
 	if n := testing.AllocsPerRun(100, func() { player.Render(out[:]) }); n != 0 {
@@ -195,10 +195,8 @@ func TestSamplerGateAndAllocationFreePublication(t *testing.T) {
 	player.SetPlaying(true)
 	player.Render(make([]float32, 5513*2))
 	player.Render(out[:])
-	for _, v := range out {
-		if v != 0 {
-			t.Fatal("gate did not close at next empty step")
-		}
+	if !silentAfterMasterLatency(out[:]) {
+		t.Fatal("gate did not close at next empty step")
 	}
 	// Replacement and clear while rendering must not mutate audio-owned state.
 	var wg sync.WaitGroup

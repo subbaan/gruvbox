@@ -1,6 +1,6 @@
 # Gruvbox - Desktop Groovebox
 
-Version: 3.0.0-alpha.53
+Version: 3.0.0-alpha.54
 
 **A groovebox that starts with a good groove, and keeps it moving.**
 
@@ -42,7 +42,29 @@ available with `--tui`. See [Getting it](#getting-it) for a pre-built binary.
 
 If you enjoy it, you can [support Gruvbox on Ko-fi](https://ko-fi.com/subbaan). ♥
 
+## Listen
+
+These loops are straight out of Gruvbox: randomised patterns exported with
+**Export WAV**, with no editing.
+
+| Loop | Length |
+|---|---|
+| [▶ Sub Zero](docs/audio/sub-zero.mp3) | 0:08 |
+| [▶ Phrygian Meltdown](docs/audio/phrygian-meltdown.mp3) (132 BPM, G Phrygian) | 0:08 |
+| [▶ Velvet Undertow](docs/audio/velvet-undertow.mp3) (115 BPM, B minor, swung) | 0:08 |
+| [▶ Abyssal Drift](docs/audio/abyssal-drift.mp3) | 0:08 |
+| [▶ Easy Voltage](docs/audio/easy-voltage.mp3) | 0:04 |
+| [▶ Ghost Signal](docs/audio/ghost-signal.mp3) | 0:07 |
+
 ## Latest additions
+
+**Master bus (alpha.54):** playback and WAV export now go through a master
+stage: +9 dB of make-up gain and a 1.4 ms look-ahead peak limiter with a
+-1 dBFS ceiling, in place of the old hard clip at ±0.98. Generated grooves
+used to peak around -10 dBFS (RMS about -27 dBFS); they now come out about
+9 dB louder (RMS about -18 dBFS) without clipping, and the limiter usually
+takes off 0–1.5 dB. Exported loops still start on the downbeat and loop
+cleanly: export removes the look-ahead delay.
 
 **Dual synth** is the new SH-101-inspired mono foundation: two oscillators
 (saw/pulse/triangle/sine), a pulse sub and noise, a driven resonant 12/24 dB
@@ -885,7 +907,8 @@ The `Engine.Read()` method is the core audio callback:
 - Per-channel level (0-100%) and pan (-1 to +1)
 - Solo and mute support
 - Constant-power panning
-- Simple brick-wall limiter to prevent clipping
+- Master bus: +9 dB make-up gain into a look-ahead peak limiter (-1 dBFS
+  ceiling), shared by playback and export (`groove/master.go`)
 - Peak level metering
 
 ## Dependencies

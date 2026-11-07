@@ -46,8 +46,8 @@ func (p *Player) renderAudition(output []float32) {
 	}
 	for i := 0; i < len(output)/2; i++ {
 		left, right := a.voice.next()
-		output[i*2] = max(-.98, min(.98, output[i*2]+left*a.left))
-		output[i*2+1] = max(-.98, min(.98, output[i*2+1]+right*a.right))
+		output[i*2] += left * a.left
+		output[i*2+1] += right * a.right
 	}
 	p.auditionPlaying.Store(a.voice.samplePlaying)
 }

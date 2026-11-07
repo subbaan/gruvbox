@@ -151,7 +151,7 @@ func TestAuditionIsIndependentOneShotAndAllocationFree(t *testing.T) {
 	}
 	var out [BlockSize * 2]float32
 	p.Render(out[:])
-	if p.Playing() || !p.Auditioning() || p.Position(track.ID) != -1 || out[0] == 0 {
+	if p.Playing() || !p.Auditioning() || p.Position(track.ID) != -1 || out[masterLatency*2] == 0 {
 		t.Fatal("audition did not sound independently while stopped")
 	}
 	before := p.active.tracks[len(project.Tracks)-1].voice.cursor
@@ -173,9 +173,12 @@ func TestAuditionIsIndependentOneShotAndAllocationFree(t *testing.T) {
 	p.SetPlaying(false)
 	p.Render(out[:])
 	for _, sample := range out {
-		if sample != 0 || math.IsNaN(float64(sample)) {
-			t.Fatal("stop preview left audio")
+		if math.IsNaN(float64(sample)) {
+			t.Fatal("stop preview left NaN audio")
 		}
+	}
+	if !silentAfterMasterLatency(out[:]) {
+		t.Fatal("stop preview left audio")
 	}
 }
 

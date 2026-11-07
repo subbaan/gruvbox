@@ -212,10 +212,8 @@ func TestEffectRenderNoAllocationsAndConcurrentEdits(t *testing.T) {
 	wg.Wait()
 	player.SetPlaying(false)
 	player.Render(out[:])
-	for _, v := range out {
-		if v != 0 {
-			t.Fatal("stop retained effect output")
-		}
+	if !silentAfterMasterLatency(out[:]) {
+		t.Fatal("stop retained effect output")
 	}
 }
 func BenchmarkRenderSixTracksWithFX(b *testing.B) {

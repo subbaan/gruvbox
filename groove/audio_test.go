@@ -31,10 +31,8 @@ func TestAudioTimingSilenceAndNoAllocations(t *testing.T) {
 	}
 	player.SetPlaying(false)
 	player.Render(buffer)
-	for _, sample := range buffer {
-		if sample != 0 {
-			t.Fatal("stop did not silence output")
-		}
+	if !silentAfterMasterLatency(buffer) {
+		t.Fatal("stop did not silence output")
 	}
 	player.SetPlaying(true)
 	player.Render(make([]float32, 5513*2))

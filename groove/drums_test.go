@@ -63,10 +63,8 @@ func TestAddedDrumsSoundModulateSaveAndUndo(t *testing.T) {
 			}
 			player.SetPlaying(false)
 			player.Render(out[:])
-			for _, value := range out {
-				if value != 0 {
-					t.Fatal("stopped drum left audio")
-				}
+			if !silentAfterMasterLatency(out[:]) {
+				t.Fatal("stopped drum left audio")
 			}
 		})
 	}

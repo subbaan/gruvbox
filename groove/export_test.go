@@ -32,8 +32,11 @@ func TestWAVExportMatchesPlaybackAndHasCorrectHeader(t *testing.T) {
 	offline := NewPlayer()
 	offline.Publish(p)
 	offline.SetPlaying(true)
-	out := make([]float32, frames*2)
-	offline.Render(out)
+	// Live output lags by the master bus look-ahead; the export removes that
+	// delay, so it equals live playback shifted back by masterLatency frames.
+	live := make([]float32, (frames+masterLatency)*2)
+	offline.Render(live)
+	out := live[masterLatency*2:]
 	for i, sample := range out {
 		if int16(binary.LittleEndian.Uint16(data[44+i*2:])) != int16(sample*32767) {
 			t.Fatalf("export differs from live engine at %d", i)
