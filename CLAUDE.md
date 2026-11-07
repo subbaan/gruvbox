@@ -30,7 +30,7 @@ session log.
 
 ## Repository
 
-https://github.com/subbaan/gruvbox (private), branch `main`; Go module
+https://github.com/subbaan/gruvbox (public, MIT), branch `main`; Go module
 `github.com/subbaan/gruvbox`. Releases are tagged `v<VERSION>` as
 pre-releases with `gruvbox-linux-x86_64` attached. Only what is needed to
 build is checked in; see `.gitignore`.
