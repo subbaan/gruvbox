@@ -93,6 +93,7 @@ func main() {
 	if *showVersion {
 		fmt.Printf("Gruvbox v%s - Desktop Groovebox\n", config.Version)
 		fmt.Println("Graphical sequencing with TB-303, analog drums and samplers; --tui runs the legacy interface")
+		fmt.Println("Support development: " + desktop.KofiURL)
 		os.Exit(0)
 	}
 	if handled, err := configureThemes(themeOptions); err != nil {

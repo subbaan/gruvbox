@@ -1,6 +1,6 @@
 # Gruvbox - Desktop Groovebox
 
-Version: 3.0.0-alpha.52
+Version: 3.0.0-alpha.53
 
 **A groovebox that starts with a good groove, and keeps it moving.**
 
@@ -39,6 +39,8 @@ banks, song mode and WAV export take it from a jam to a finished track.
 
 It runs on Linux as a native desktop app. A legacy terminal interface is still
 available with `--tui`. See [Getting it](#getting-it) for a pre-built binary.
+
+If you enjoy it, you can [support Gruvbox on Ko-fi](https://ko-fi.com/subbaan). ♥
 
 ## Latest additions
 
@@ -549,6 +551,12 @@ Pre-built Linux x86-64 binaries are attached to the
 [releases](https://github.com/subbaan/gruvbox/releases). Download
 `gruvbox-linux-x86_64`, make it executable (`chmod +x`) and run it.
 
+## Support
+
+If Gruvbox gives you a groove worth keeping, you can buy me a coffee at
+[ko-fi.com/subbaan](https://ko-fi.com/subbaan). The link is also in the app,
+under **≡ ▸ Support on Ko-fi…** and **≡ ▸ About Gruvbox…**.
+
 ## Building
 
 Needs Go 1.24 or newer and a C compiler. Fyne and the audio backend need the
@@ -890,7 +898,7 @@ The `Engine.Read()` method is the core audio callback:
 
 ## License
 
-To be determined
+MIT. See [LICENSE](LICENSE).
 
 ## Development
 

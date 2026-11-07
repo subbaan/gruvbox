@@ -31,6 +31,7 @@ func (u *UI) confirm(title, accept, cancel string, content fyne.CanvasObject, ca
 
 // confirmOn shows the card over canvas (a utility window may pass its own).
 // Enter in a field accepts; Escape or Cancel declines. One card per title.
+// An empty cancel label leaves out the cancel button (an information card).
 func (u *UI) confirmOn(canvas fyne.Canvas, title, accept, cancel string, content fyne.CanvasObject, callback func(bool)) {
 	if u.modals == nil {
 		u.modals = map[string]*modal{}
@@ -72,7 +73,12 @@ func (u *UI) confirmOn(canvas fyne.Canvas, title, accept, cancel string, content
 		}
 	}
 	walk(content)
-	card := container.NewBorder(container.NewVBox(heading, widget.NewSeparator()), container.NewHBox(layout.NewSpacer(), cancelButton, acceptButton), nil, nil, content)
+	buttons := container.NewHBox(layout.NewSpacer(), cancelButton, acceptButton)
+	if cancel == "" {
+		buttons = container.NewHBox(layout.NewSpacer(), acceptButton)
+		acceptButton.Importance = widget.MediumImportance
+	}
+	card := container.NewBorder(container.NewVBox(heading, widget.NewSeparator()), buttons, nil, nil, content)
 	roles := u.scheme.Roles()
 	background := fynecanvas.NewRectangle(colour(roles.Panel))
 	background.StrokeColor, background.StrokeWidth, background.CornerRadius = colour(roles.Border), 1, 4

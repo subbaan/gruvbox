@@ -301,7 +301,7 @@ func (u *UI) content() fyne.CanvasObject {
 	return container.NewPadded(u.root)
 }
 
-// showMainMenu opens the ≡ menu: project files, export and appearance.
+// showMainMenu opens the ≡ menu: project files, export, appearance, Ko-fi and About.
 func (u *UI) showMainMenu() {
 	newProject := fyne.NewMenuItem("New", nil)
 	newProject.ChildMenu = fyne.NewMenu("New project", u.templateItems()...)
@@ -313,7 +313,7 @@ func (u *UI) showMainMenu() {
 	export.ChildMenu = fyne.NewMenu("Export WAV", u.exportItems()...)
 	randomAll := fyne.NewMenuItem("Randomise", nil)
 	randomAll.ChildMenu = fyne.NewMenu("Randomise", u.randomiseItems()...)
-	menu := fyne.NewMenu("Gruvbox", newProject, randomAll, fyne.NewMenuItem("Open…", u.open), save, saveAs, fyne.NewMenuItemSeparator(), export, fyne.NewMenuItemSeparator(), fyne.NewMenuItem("Appearance…", u.settings))
+	menu := fyne.NewMenu("Gruvbox", newProject, randomAll, fyne.NewMenuItem("Open…", u.open), save, saveAs, fyne.NewMenuItemSeparator(), export, fyne.NewMenuItemSeparator(), fyne.NewMenuItem("Appearance…", u.settings), fyne.NewMenuItemSeparator(), fyne.NewMenuItem("Support on Ko-fi…", u.openKofi), fyne.NewMenuItem("About Gruvbox…", u.showAbout))
 	pop := widget.NewPopUpMenu(menu, u.window.Canvas())
 	button := u.menuButton
 	pos := fyne.CurrentApp().Driver().AbsolutePositionForObject(button).Add(fyne.NewPos(button.Size().Width-pop.MinSize().Width, button.Size().Height))

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Gruvbox is a desktop and terminal groovebox featuring TB-303 bass synthesizer emulation, analog-modeled drum synthesis, step sequencer, and per-channel effects. Current version: 3.0.0-alpha.52
+Gruvbox is a desktop and terminal groovebox featuring TB-303 bass synthesizer emulation, analog-modeled drum synthesis, step sequencer, and per-channel effects. Current version: 3.0.0-alpha.53
 
 ## Desktop UI redesign (in progress)
 

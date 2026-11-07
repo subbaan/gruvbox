@@ -135,7 +135,8 @@ Each phase stands alone: bump the version, `go build -o gruvbox`, and
 - `desktop/timeline.go`: `songTimeline`, `selectSection`.
 - `desktop/clipboard.go`: step/pattern copy-paste, `nudgeVelocity`, `cycleEditorTab`.
 - `desktop/bind.go`: `u.live(f)` = run now + bind; prefer it over `u.bound` for inline styling syncs.
-- `desktop/modal.go`: `confirm` / `confirmOn`, `modalKey`, `showError` (toast), `hideToast`, `relayout`.
+- `desktop/modal.go`: `confirm` / `confirmOn` (an empty cancel label makes an information card with one button), `modalKey`, `showError` (toast), `hideToast`, `relayout`.
+- `desktop/about.go`: `showAbout` (About card), `openKofi`, `KofiURL` (also printed by `--version`), `openURL` (swapped in tests).
 - `groove.PatternEmpty(p, slot)` was added for the pads; `NextEmptyPattern` now uses it.
 
 ## Next up
@@ -186,3 +187,4 @@ user what they want next. Candidate follow-ups noticed along the way:
   - **Fix:** `u.showPanel(w)` in `windows.go` calls `raiseOver` (`raise_x11.go`, using pure-Go xgb so X errors are values, not exits). It sets `WM_TRANSIENT_FOR` to the main window, then, once the window is mapped, sends `_NET_ACTIVE_WINDOW` with source 2 (user request).
   - **Other platforms:** `raise_other.go` falls back to RequestFocus.
   - **Verified** on a private Xvfb :77 with xfwm4 using a copy of the user's xfwm4.xml: alpha.51's Export WAV was buried after a pointer move; the fixed build keeps it on top.
+- **2026-11-07 (alpha.53):** Ko-fi link. The `≡` menu ends with **Support on Ko-fi…** (opens the browser) and **About Gruvbox…**, an information card (`showAbout` in `desktop/about.go`) with the version, a short pitch, a **♥ Support on Ko-fi** button and a hyperlink. Enter/Escape only close the card; only the button or link opens a browser. `--version` prints the link and the README has a Support section. Test: `TestAboutCardShowsVersionAndOpensKofi`; `TestScreenshots` also writes `about`.
