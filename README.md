@@ -2,6 +2,46 @@
 
 Version: 3.0.0-alpha.50
 
+**A groovebox that starts with a good groove, and keeps it moving.**
+
+![A fresh groove, straight after launch](docs/screenshots/groove.png)
+
+Gruvbox is built around a real-time synth engine:
+- two TB-303-style acid voices with a diode-ladder filter, accent and slide;
+- an SH-101-inspired Dual synth;
+- analog-modelled kick, snare, hats, clap, rimshot, toms and crash;
+- a sampler.
+
+Every track has its own effects chain, with twelve effect types (overdrive,
+fuzz, envelope-filter wah, bit crusher, phaser, flanger, chorus, tape echo,
+delay, reverb and more) and fifteen ready-made pedalboards. Each track has
+two LFOs to sweep its sound controls, any control can be locked per step,
+and the effects have LFOs of their own.
+
+Press **Play** the moment it opens and you are already listening to something
+worth keeping. Each launch writes a fresh groove in one of six styles (acid,
+minimal, electro, dub, hypnotic or broken). It is in key, with a matching kit
+and sounds, and its tracks are drawn from the whole pool. Hold the parts you
+like and re-roll the rest. **Grow into a track…** turns the loop into a full
+arrangement (intro, build, riser, peak, breakdown, outro) in a few seconds.
+Switch on **Jam** and it keeps evolving while you listen: it rewrites a line
+here, brings a part in there, swaps a sound, and builds and releases over
+time. When it lands on something good, keep it. Groove history remembers
+what you've heard and lets you star favourites. Eight pattern slots, song
+mode and WAV export take it from a jam to a finished track.
+
+| | |
+|---|---|
+| ![Grow into a track: a full arrangement from one loop](docs/screenshots/grow-song.png) | ![Per-track effects chain from a pedalboard](docs/screenshots/effects.png) |
+| **Grow into a track:** one loop becomes a whole song (ten sections and 4:19 here). | **Effects:** per-track pedal chains, each pedal with its own LFO. |
+| ![Groove history with recent grooves and favourites](docs/screenshots/history.png) | ![Open and Save dialog with places, preview and bookmarks](docs/screenshots/file-dialog.png) |
+| **Groove history:** go back to anything you heard; star the keepers. | **Files:** a keyboard-driven Open/Save dialog with previews. |
+
+It runs on Linux as a native desktop app. A legacy terminal interface is still
+available with `--tui`. See [Getting it](#getting-it) for a pre-built binary.
+
+## Latest additions
+
 **Dual synth** is the new SH-101-inspired mono foundation: two oscillators
 (saw/pulse/triangle/sine), a pulse sub and noise, a driven resonant 12/24 dB
 low-pass filter, separate amp/filter ADSRs, glide and legato. Add it in **+ Track**,
@@ -20,10 +60,6 @@ Clap, Rimshot, Tom and Crash are available in **+ Track**, with live sound contr
 For a Tom bassline, add **Tom**, choose **Sound → Bass tone**, then enter notes in **Piano roll** or press **Bassline** at the top of the inspector. Bass tone tunes the root to C2 (65.41 Hz), removes the sweep and noise, and disables the LFOs. Adjust decay, sweep, attack and LFOs to taste. Notes transpose relative to C2; existing Tom patterns at C2 retain their sound. Root pitch, Tune and pitch locks still apply.
 
 Sampler Sound controls include live gain, whole-sample peak normalization and fades following the trimmed region (including reverse). These settings are saved and undoable; the original WAV stays intact.
-
-A generative groovebox featuring TB-303 emulation, analog drums and detailed
-pattern editing. The default interface is now a native desktop GUI. The original
-terminal interface remains available with `./gruvbox --tui`.
 
 ## Gruvbox 3 alpha
 
