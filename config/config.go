@@ -7,7 +7,7 @@ import (
 
 const (
 	// Version is embedded at compile time
-	Version = "3.0.0-alpha.51"
+	Version = "3.0.0-alpha.52"
 )
 
 var (

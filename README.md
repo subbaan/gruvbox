@@ -1,6 +1,6 @@
 # Gruvbox - Desktop Groovebox
 
-Version: 3.0.0-alpha.51
+Version: 3.0.0-alpha.52
 
 **A groovebox that starts with a good groove, and keeps it moving.**
 
@@ -884,6 +884,7 @@ The `Engine.Read()` method is the core audio callback:
 
 - `fyne.io/fyne/v2` - desktop GUI
 - `github.com/ebitengine/oto/v3` - cross-platform low-latency audio
+- `github.com/jezek/xgb` - X11 hints that keep utility windows above the main window
 - `github.com/charmbracelet/bubbletea` - legacy terminal UI
 - `github.com/charmbracelet/lipgloss` - terminal UI styling
 

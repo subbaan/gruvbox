@@ -77,5 +77,5 @@ func (u *UI) sectionTracks(id string) {
 		w.SetContent(container.NewPadded(container.NewBorder(widget.NewLabel(fmt.Sprintf("Pattern %s · %d bars", groove.SlotName(section.Pattern), section.Repeats)), footer, nil, nil, container.NewVScroll(rows))))
 	}
 	rebuild()
-	w.Show()
+	u.showPanel(w)
 }

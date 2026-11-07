@@ -105,5 +105,5 @@ func (u *UI) exportWAV(song bool) {
 	}
 	destination := container.NewBorder(nil, nil, nil, browse, path)
 	w.SetContent(container.NewPadded(container.NewVBox(widget.NewLabel("Destination"), destination, tailLabel, tail, help, progress, status, container.NewHBox(start, widget.NewButton("Close / cancel", w.Close)))))
-	w.Show()
+	u.showPanel(w)
 }

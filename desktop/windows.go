@@ -8,8 +8,7 @@ import (
 // Keep one instance per purpose, and cancel unfinished work on native close.
 func (u *UI) panel(title string, size fyne.Size, closed func()) (fyne.Window, bool) {
 	if w := u.panels[title]; w != nil {
-		w.Show()
-		w.RequestFocus()
+		u.showPanel(w)
 		return w, false
 	}
 	w := u.app.NewWindow(title)
@@ -22,4 +21,12 @@ func (u *UI) panel(title string, size fyne.Size, closed func()) (fyne.Window, bo
 		}
 	})
 	return w, true
+}
+
+// showPanel shows a utility window above the main window, focused. A bare
+// Show can leave it behind the main window when the window manager
+// prevents focus stealing (see raiseOver).
+func (u *UI) showPanel(w fyne.Window) {
+	w.Show()
+	raiseOver(w, u.window)
 }

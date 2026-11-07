@@ -28,8 +28,7 @@ var themeFiles = fileKind{Name: "Colour themes", Exts: []string{".yaml", ".yml",
 
 func (u *UI) settings() {
 	if w := u.panels["Conf / Appearance"]; w != nil {
-		w.Show()
-		w.RequestFocus()
+		u.showPanel(w)
 		return
 	}
 	original := u.scheme
@@ -131,13 +130,12 @@ func (u *UI) settings() {
 			w.Close()
 		}
 	})
-	w.Show()
+	u.showPanel(w)
 }
 
 func (u *UI) catalogue(installed func(string)) {
 	if w := u.panels["Download themes"]; w != nil {
-		w.Show()
-		w.RequestFocus()
+		u.showPanel(w)
 		return
 	}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -216,7 +214,7 @@ func (u *UI) catalogue(installed func(string)) {
 			w.Close()
 		}
 	})
-	w.Show()
+	u.showPanel(w)
 	if cached, err := u.library.CachedCatalogue(); err == nil {
 		all = cached.Schemes
 		filter()

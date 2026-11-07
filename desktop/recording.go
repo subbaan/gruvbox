@@ -316,7 +316,7 @@ func (u *UI) recordSample(trackID string) {
 			w.Close()
 		}
 	})
-	w.Show()
+	u.showPanel(w)
 	refreshSources.OnTapped()
 }
 
