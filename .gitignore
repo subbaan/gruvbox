@@ -1,0 +1,16 @@
+# Built binary (go build -o gruvbox)
+/gruvbox
+/gruvbox-linux-*
+*.test
+*.prof
+
+# Local material that isn't needed to build
+/artifacts/
+/sources/
+/.claude/
+/first_build_conversation.txt
+/bassline_generation.txt
+
+# Generated audio and stray output
+*.wav
+*.log

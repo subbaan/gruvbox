@@ -1,0 +1,21 @@
+system: base16
+name: Warm Light Test
+author: Gruvbox
+variant: light
+palette:
+  base00: '#f5f0e6'
+  base01: '#ebe5d9'
+  base02: '#ded7c8'
+  base03: '#aaa394'
+  base04: '#716d63'
+  base05: '#3a3833'
+  base06: '#2b2a27'
+  base07: '#22211f'
+  base08: '#ac4f40'
+  base09: '#985f35'
+  base0A: '#94701f'
+  base0B: '#65723d'
+  base0C: '#42755e'
+  base0D: '#476e8a'
+  base0E: '#805b78'
+  base0F: '#85644e'
