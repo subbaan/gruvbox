@@ -99,7 +99,7 @@ func (u *UI) keepCurrentGroove() {
 // plainGrooveLabel names the selected pattern by number, tempo and key.
 func (u *UI) plainGrooveLabel() string {
 	p := u.session.Project
-	label := fmt.Sprintf("Pattern %d · %.0f BPM", p.Pattern+1, p.BPM)
+	label := fmt.Sprintf("Pattern %s · %.0f BPM", groove.SlotName(p.Pattern), p.BPM)
 	if p.Key != nil {
 		label += " · " + p.Key.Name()
 	}

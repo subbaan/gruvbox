@@ -1,6 +1,6 @@
 # Gruvbox - Desktop Groovebox
 
-Version: 3.0.0-alpha.50
+Version: 3.0.0-alpha.51
 
 **A groovebox that starts with a good groove, and keeps it moving.**
 
@@ -27,8 +27,8 @@ arrangement (intro, build, riser, peak, breakdown, outro) in a few seconds.
 Switch on **Jam** and it keeps evolving while you listen: it rewrites a line
 here, brings a part in there, swaps a sound, and builds and releases over
 time. When it lands on something good, keep it. Groove history remembers
-what you've heard and lets you star favourites. Eight pattern slots, song
-mode and WAV export take it from a jam to a finished track.
+what you've heard and lets you star favourites. 64 pattern slots in eight
+banks, song mode and WAV export take it from a jam to a finished track.
 
 | | |
 |---|---|
@@ -103,7 +103,7 @@ The GUI alpha includes:
   (**Ctrl+Shift+R**) and **303s only** (**Ctrl+Alt+R**).
 - **Grow into a track** (**Song tab**, **Patterns** menu or **Ctrl+G**) turns
   the selected pattern into a whole arrangement. That pattern becomes the
-  peak; the other seven patterns get parts made from it (an intro of kick and
+  peak; the other seven pads of its bank get parts made from it (an intro of kick and
   hats, a filtered build, a four-bar riser with an opening filter and a snare
   roll, one-bar fills, a breakdown without kick and snare, and a second peak
   with a varied, hotter 303 line), and the song lays them out: Intro, Build,
@@ -112,7 +112,8 @@ The GUI alpha includes:
   switches to song mode, so Play plays the track and Export WAV ▸ Song
   renders it. Sound changes in the sections are step locks, so later edits
   to a track's sound still reach every section. The card says what it will
-  replace; one undo brings it all back.
+  replace; one undo brings it all back. Each bank can hold its own grown
+  song, so a peak in B3 fills only bank B.
 - **Jam** (**Perform tab** or **J**) changes the groove every 4, 8 or 16
   bars while a pattern loops, by one of three amounts:
   - **Gentle**: one small move: a couple of steps of one part, a part
@@ -327,8 +328,15 @@ lower or raise its velocity. Ctrl+C / Ctrl+V copy and paste the selected step
 (pasting moves on to the next step, so repeated pastes stamp a run);
 Ctrl+Shift+C / Ctrl+Shift+V copy a track's whole pattern to another track.
 Ctrl+Tab / Ctrl+Shift+Tab move between the editor tabs. The
-**1–8** pattern pads (or keys 1–8) switch patterns: the current one is lit and
-empty slots are dimmed. **Steps** page buttons (or `[` / `]`) move between
+**pattern pads** switch patterns. There are 64 slots, A1 to H8, in eight
+banks of eight. The **A▾** button before the pads (or **Alt+1–8**) shows
+bank A–H; its menu marks the banks holding patterns. The pads, or keys
+**1–8**, pick a pattern in the bank shown. The current pattern is lit and
+empty slots are dimmed. The view follows the pattern when it changes
+elsewhere, such as song playback or history. Song sections, the patterns
+menu and status lines name slots the same way. Projects saved in alpha.50
+or earlier open with their 8 patterns in bank A. Blank slots take almost no
+room in the file, but alpha.50 and earlier can't open projects saved now. **Steps** page buttons (or `[` / `]`) move between
 16-step pages; pages with no notes are dimmed and `▸` marks the page that is
 playing. Ctrl+Z undoes; Ctrl+Shift+Z or Ctrl+Y redoes. Ctrl+S saves straight to the project's file, asking for a path only
 the first time; Ctrl+Shift+S or **Save as…** picks a new one. Sliders apply live

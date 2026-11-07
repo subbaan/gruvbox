@@ -88,7 +88,7 @@ func (u *UI) euclideanGenerator() {
 		if applying {
 			return
 		}
-		target.SetText(fmt.Sprintf("%s / pattern %02d", t.Name, slot+1))
+		target.SetText(fmt.Sprintf("%s / pattern %s", t.Name, groove.SlotName(slot)))
 		syncing = true
 		pulses.Max = float64(options.Steps)
 		pulses.SetValue(float64(options.Pulses))
@@ -293,7 +293,7 @@ func (u *UI) lockGenerator() {
 		if applying {
 			return
 		}
-		target.SetText(fmt.Sprintf("%s / pattern %02d", t.Name, slot+1))
+		target.SetText(fmt.Sprintf("%s / pattern %s", t.Name, groove.SlotName(slot)))
 		groups = lockGroups(*t)
 		g, index, found := 0, 0, false
 		for i, group := range groups {

@@ -249,8 +249,8 @@ func TestGrowIntoATrackBuildsTheSongAndUndoes(t *testing.T) {
 		t.Fatal("song tab not shown")
 	}
 	for slot := 0; slot < groove.PatternCount; slot++ {
-		if groove.PatternEmpty(p, slot) {
-			t.Fatalf("pattern %d empty", slot+1)
+		if groove.PatternEmpty(p, slot) == (slot < groove.BankSize) {
+			t.Fatalf("pattern %s: Grow should fill bank A only", groove.SlotName(slot))
 		}
 	}
 	// A second grow says what it will replace.

@@ -10,8 +10,30 @@ import (
 	"reflect"
 )
 
-const FormatVersion = 1
-const PatternCount = 8
+// FormatVersion 2 has 64 pattern slots and writes blank ones as {}.
+// Version 1 files (8 slots) are padded when they are read.
+const FormatVersion = 2
+
+// Patterns are 8 banks (A–H) of 8 pads.
+const (
+	BankSize     = 8
+	BankCount    = 8
+	PatternCount = BankSize * BankCount
+)
+
+// SlotName names a pattern slot: "A1" … "H8".
+func SlotName(slot int) string {
+	if slot < 0 || slot >= PatternCount {
+		return "?"
+	}
+	return fmt.Sprintf("%c%d", 'A'+slot/BankSize, slot%BankSize+1)
+}
+
+// BankOf is the bank (0 = A) that holds slot.
+func BankOf(slot int) int { return slot / BankSize }
+
+// NextInBank is the pad after slot in its own bank, wrapping to the first.
+func NextInBank(slot int) int { return BankOf(slot)*BankSize + (slot%BankSize+1)%BankSize }
 
 type Kind string
 
@@ -119,8 +141,8 @@ type Step struct {
 	Locks       map[string]float64 `json:"locks,omitempty"`
 }
 type Pattern struct {
-	Steps      []Step      `json:"steps"`
-	Resolution int         `json:"resolution"`
+	Steps      []Step      `json:"steps,omitempty"`      // nil only in a saved blank slot ({})
+	Resolution int         `json:"resolution,omitempty"` // see Steps
 	State      *TrackState `json:"state,omitempty"`
 }
 type Track struct {
@@ -164,12 +186,33 @@ func NewTrack(kind Kind, colour int) Track {
 		t.Parameters[p.ID] = p.Default
 	}
 	for i := range t.Patterns {
-		t.Patterns[i] = Pattern{Steps: make([]Step, 16), Resolution: 16}
-		for j := range t.Patterns[i].Steps {
-			t.Patterns[i].Steps[j] = DefaultStep()
-		}
+		t.Patterns[i] = NewPattern()
 	}
 	return t
+}
+
+// NewPattern is a blank 16-step pattern.
+func NewPattern() Pattern {
+	p := Pattern{Steps: make([]Step, 16), Resolution: 16}
+	for j := range p.Steps {
+		p.Steps[j] = DefaultStep()
+	}
+	return p
+}
+
+// blank reports whether a pattern is exactly NewPattern(): nothing to save.
+func (p Pattern) blank() bool {
+	if p.State != nil || p.Resolution != 16 || len(p.Steps) != 16 {
+		return false
+	}
+	def := DefaultStep()
+	for _, s := range p.Steps {
+		if s.Locks != nil || s.Length != 0 || s.Active || s.Note != def.Note || s.Velocity != def.Velocity ||
+			s.Accent || s.Slide || s.Probability != def.Probability || s.Every != 0 {
+			return false
+		}
+	}
+	return true
 }
 func (s Step) GateSteps() int { return max(1, s.Length) }
 

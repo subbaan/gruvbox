@@ -39,18 +39,27 @@ func (u *UI) patternTools(button *widget.Button) {
 	one.ChildMenu = fyne.NewMenu("Track")
 	source := u.session.Project.Pattern
 	id := u.selected
-	for slot := 0; slot < groove.PatternCount; slot++ {
-		if slot == source {
-			continue
-		}
-		for _, pair := range []struct {
-			menu  *fyne.Menu
-			track string
-		}{{all.ChildMenu, ""}, {one.ChildMenu, id}} {
-			slot, track := slot, pair.track
-			pair.menu.Items = append(pair.menu.Items, fyne.NewMenuItem(fmt.Sprintf("Replace pattern %02d", slot+1), func() {
-				u.edit("Copy pattern", func(p *groove.Project) error { return groove.CopyPattern(p, source, slot, track) })
-			}))
+	// One submenu per bank; filled slots are marked, since copying replaces.
+	for _, pair := range []struct {
+		menu  *fyne.Menu
+		track string
+	}{{all.ChildMenu, ""}, {one.ChildMenu, id}} {
+		for bank := 0; bank < groove.BankCount; bank++ {
+			banked := fyne.NewMenuItem(fmt.Sprintf("Bank %c", 'A'+bank), nil)
+			banked.ChildMenu = fyne.NewMenu("")
+			for pad := 0; pad < groove.BankSize; pad++ {
+				slot, track := bank*groove.BankSize+pad, pair.track
+				label := groove.SlotName(slot)
+				if !u.patternEmpty[slot] {
+					label += "  ● replace"
+				}
+				item := fyne.NewMenuItem(label, func() {
+					u.edit("Copy pattern", func(p *groove.Project) error { return groove.CopyPattern(p, source, slot, track) })
+				})
+				item.Disabled = slot == source
+				banked.ChildMenu.Items = append(banked.ChildMenu.Items, item)
+			}
+			pair.menu.Items = append(pair.menu.Items, banked)
 		}
 	}
 	euclidean := fyne.NewMenuItem("Euclidean rhythm…", u.euclideanGenerator)

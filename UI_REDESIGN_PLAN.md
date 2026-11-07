@@ -181,3 +181,4 @@ user what they want next. Candidate follow-ups noticed along the way:
   - export's Browse….
 
   `fileOpen` is gone. Tests: `filebrowser_test.go` (model) and `filedialog_test.go`: Save as with the replace confirm, open by a typed path and from Recent, keys, double click, bookmarks in the data root and the narrow crumb bar. `TestFileDialogScreenshots` is behind `GRUVBOX_SHOTS`. Possible follow-ups: drag-and-drop of files onto the window, and a "Recent" list on the main menu.
+- **2026-11-07 (alpha.51):** Pattern banks: a bank button (A–H) before the 8 pads, Alt+1–8, slot names (A1…H8) in song sections, the timeline, menus and status lines. See `PATTERN_BANKS_PLAN.md`.

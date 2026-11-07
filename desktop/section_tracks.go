@@ -74,7 +74,7 @@ func (u *UI) sectionTracks(id string) {
 		}), widget.NewButton("Use live mutes", func() {
 			change("Clear section overrides", func(_ *groove.Project, s *groove.SongSection) { s.Mutes = nil })
 		}), widget.NewButton("Close", w.Close))
-		w.SetContent(container.NewPadded(container.NewBorder(widget.NewLabel(fmt.Sprintf("Pattern %02d · %d bars", section.Pattern+1, section.Repeats)), footer, nil, nil, container.NewVScroll(rows))))
+		w.SetContent(container.NewPadded(container.NewBorder(widget.NewLabel(fmt.Sprintf("Pattern %s · %d bars", groove.SlotName(section.Pattern), section.Repeats)), footer, nil, nil, container.NewVScroll(rows))))
 	}
 	rebuild()
 	w.Show()

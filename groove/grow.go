@@ -30,11 +30,12 @@ var GrowRoleNames = [growSlots]string{"Intro", "Build", "Riser", "Fill", "Breakd
 // riserBars is the riser's length; patterns hold at most four bars.
 const riserBars = 4
 
-// GrowSlots returns the slots Grow writes, in growIntro… order: every slot
-// except the source, lowest first.
+// GrowSlots returns the slots Grow writes, in growIntro… order: the other
+// pads of the source's bank, lowest first. Each bank can hold one song.
 func GrowSlots(source int) []int {
-	slots := make([]int, 0, PatternCount-1)
-	for slot := 0; slot < PatternCount; slot++ {
+	slots := make([]int, 0, BankSize-1)
+	first := BankOf(source) * BankSize
+	for slot := first; slot < first+BankSize; slot++ {
 		if slot != source {
 			slots = append(slots, slot)
 		}
@@ -170,9 +171,9 @@ func GrowTrack(p *Project, r *rand.Rand, full bool) (string, error) {
 	seconds := int(math.Round(float64(bars) * 4 * 60 / p.BPM))
 	used := make([]string, 0, growSlots)
 	for _, slot := range slots[:growSlots] {
-		used = append(used, fmt.Sprint(slot+1))
+		used = append(used, SlotName(slot))
 	}
-	return fmt.Sprintf("%d sections · %d bars · %d:%02d · peak is pattern %d, parts in %s", len(p.Song), bars, seconds/60, seconds%60, source+1, strings.Join(used, ", ")), nil
+	return fmt.Sprintf("%d sections · %d bars · %d:%02d · peak is pattern %s, parts in %s", len(p.Song), bars, seconds/60, seconds%60, SlotName(source), strings.Join(used, ", ")), nil
 }
 
 type grower struct {

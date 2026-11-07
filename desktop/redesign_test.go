@@ -29,8 +29,8 @@ func redesignUI(t *testing.T) (*UI, fyne.Window) {
 
 func TestPatternPadsAndNumberKeys(t *testing.T) {
 	u, _ := redesignUI(t)
-	if len(u.patternPads) != groove.PatternCount {
-		t.Fatalf("expected %d pattern pads, got %d", groove.PatternCount, len(u.patternPads))
+	if len(u.patternPads) != groove.BankSize {
+		t.Fatalf("expected %d pattern pads, got %d", groove.BankSize, len(u.patternPads))
 	}
 	if u.patternPads[0].Importance != widget.HighImportance || u.patternPads[1].Importance != widget.LowImportance {
 		t.Fatal("pads do not distinguish current and empty patterns")
@@ -47,6 +47,26 @@ func TestPatternPadsAndNumberKeys(t *testing.T) {
 	u.key(fyne.Key2)
 	if u.patternPads[0].Importance != widget.MediumImportance {
 		t.Fatal("filled pattern pad not shown as filled")
+	}
+	// Alt+3 shows bank C without changing the pattern; 4 then picks C4.
+	u.showBank(2)
+	if u.bankButton.Text != "C" || u.session.Project.Pattern != 1 || u.patternPads[1].Importance == widget.HighImportance {
+		t.Fatal("showing a bank changed the pattern or kept its pad lit")
+	}
+	u.key(fyne.Key4)
+	if u.session.Project.Pattern != 19 || u.patternPads[3].Importance != widget.HighImportance {
+		t.Fatalf("key 4 in bank C picked %s", groove.SlotName(u.session.Project.Pattern))
+	}
+	// Choosing a pattern elsewhere (song, history) moves the view to it.
+	u.edit("Elsewhere", func(p *groove.Project) error { return groove.SelectPattern(p, 41) })
+	if u.bankButton.Text != "F" || u.patternPads[1].Importance != widget.HighImportance {
+		t.Fatalf("view did not follow to F2: bank %s", u.bankButton.Text)
+	}
+	// Variation stays in its bank: F8 wraps to F1.
+	u.edit("To F8", func(p *groove.Project) error { return groove.SelectPattern(p, 47) })
+	u.generate("Variation")
+	if u.session.Project.Pattern != 40 {
+		t.Fatalf("variation from F8 went to %s", groove.SlotName(u.session.Project.Pattern))
 	}
 }
 

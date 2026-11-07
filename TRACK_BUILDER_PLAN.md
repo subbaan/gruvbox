@@ -159,3 +159,4 @@ restores it as an undoable edit.
 - Possible follow-ups: Grow variants (another arrangement shape, an 8-bar
   breakdown riser), Jam moves that change pattern length or swing,
   naming/renaming favourites, a ride pattern family for the crash track.
+- **2026-11-07 (alpha.51):** Pattern banks. Grow now writes the other seven pads of the source's bank (`GrowSlots`), and Variation wraps within the bank (`NextInBank`). See `PATTERN_BANKS_PLAN.md`.

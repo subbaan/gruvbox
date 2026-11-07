@@ -111,7 +111,7 @@ func (u *UI) rebuildSong() {
 		name := u.boundEntry(func() string { return current().Name }, func(value string) { edit("Name song section", func(s *groove.SongSection) { s.Name = value }) })
 		slots := []string{}
 		for n := 0; n < groove.PatternCount; n++ {
-			slots = append(slots, fmt.Sprintf("%02d", n+1))
+			slots = append(slots, groove.SlotName(n))
 		}
 		pattern := u.boundSelect(slots, func() int { return current().Pattern }, func(i int) {
 			edit("Section pattern", func(s *groove.SongSection) { s.Pattern = i })

@@ -91,7 +91,7 @@ func phraseAction(kind Kind, action string, r *rand.Rand) (PhraseOptions, bool) 
 func generate(t *Track, slot int, action string, key *Key, r *rand.Rand) {
 	pattern := &t.Patterns[slot]
 	if action == "Variation" {
-		next := (slot + 1) % len(t.Patterns)
+		next := NextInBank(slot)
 		copy := Project{Tracks: []Track{*t}}.Clone().Tracks[0].Patterns[slot]
 		t.Patterns[next] = copy
 		pattern = &t.Patterns[next]

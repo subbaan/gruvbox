@@ -178,8 +178,22 @@ func (p *Player) Publish(project Project) {
 		return tracks
 	}
 	state.live = prepare(project.Pattern, false)
+	// A slot's bank differs from the plain tracks only where a track stores
+	// state in it; slots without any share one prepared bank.
+	var plain []playTrack
 	for slot := 0; slot < PatternCount; slot++ {
-		state.banks[slot] = prepare(slot, true)
+		stored := false
+		for _, t := range state.project.Tracks {
+			stored = stored || t.Patterns[slot].State != nil
+		}
+		if stored {
+			state.banks[slot] = prepare(slot, true)
+			continue
+		}
+		if plain == nil {
+			plain = prepare(slot, true)
+		}
+		state.banks[slot] = plain
 	}
 	state.tracks = state.live
 	p.fxCache, p.cache, p.prepared = nextFX, nextCache, state

@@ -35,7 +35,7 @@ func (u *UI) exportWAV(song bool) {
 	if song {
 		stem += "-song"
 	} else {
-		stem += fmt.Sprintf("-pattern-%02d", u.session.Project.Pattern+1)
+		stem += "-pattern-" + groove.SlotName(u.session.Project.Pattern)
 	}
 	path.SetText(filepath.Join(config.ProjectsDir, stem+".wav"))
 	tail := widget.NewSlider(0, 10)

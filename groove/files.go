@@ -22,6 +22,22 @@ func Decode(reader io.Reader) (Project, error) {
 	if err := json.Unmarshal(data, &p); err != nil {
 		return p, err
 	}
+	// Version 1 had 8 pattern slots; both versions may hold blank slots
+	// written as {}. Either way every track ends up with PatternCount.
+	if p.FormatVersion == 1 || p.FormatVersion == FormatVersion {
+		p.FormatVersion = FormatVersion
+		for i := range p.Tracks {
+			t := &p.Tracks[i]
+			for len(t.Patterns) < PatternCount {
+				t.Patterns = append(t.Patterns, Pattern{})
+			}
+			for j := range t.Patterns {
+				if t.Patterns[j].Steps == nil && t.Patterns[j].Resolution == 0 && t.Patterns[j].State == nil {
+					t.Patterns[j] = NewPattern()
+				}
+			}
+		}
+	}
 	// Alpha 1/2 projects omitted LFOs and these newly exposed sound controls.
 	for i := range p.Tracks {
 		t := &p.Tracks[i]
@@ -57,7 +73,7 @@ func Save(path string, p Project) error {
 	if err := p.Validate(); err != nil {
 		return err
 	}
-	data, err := json.MarshalIndent(p, "", "  ")
+	data, err := json.MarshalIndent(compact(p), "", "  ")
 	if err != nil {
 		return err
 	}
@@ -81,4 +97,22 @@ func Save(path string, p Project) error {
 		return err
 	}
 	return os.Rename(f.Name(), path)
+}
+
+// compact returns p with blank pattern slots emptied so they save as {}.
+// It copies the track and pattern slices it changes; p is untouched.
+func compact(p Project) Project {
+	tracks := make([]Track, len(p.Tracks))
+	for i, t := range p.Tracks {
+		patterns := make([]Pattern, len(t.Patterns))
+		for j, pattern := range t.Patterns {
+			if !pattern.blank() {
+				patterns[j] = pattern
+			}
+		}
+		t.Patterns = patterns
+		tracks[i] = t
+	}
+	p.Tracks = tracks
+	return p
 }

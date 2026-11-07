@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Gruvbox is a desktop and terminal groovebox featuring TB-303 bass synthesizer emulation, analog-modeled drum synthesis, step sequencer, and per-channel effects. Current version: 3.0.0-alpha.50
+Gruvbox is a desktop and terminal groovebox featuring TB-303 bass synthesizer emulation, analog-modeled drum synthesis, step sequencer, and per-channel effects. Current version: 3.0.0-alpha.51
 
 ## Desktop UI redesign (in progress)
 
@@ -34,6 +34,12 @@ https://github.com/subbaan/gruvbox (private), branch `main`; Go module
 `github.com/subbaan/gruvbox`. Releases are tagged `v<VERSION>` as
 pre-releases with `gruvbox-linux-x86_64` attached. Only what is needed to
 build is checked in; see `.gitignore`.
+
+## Pattern banks (alpha.51) and Jam → Song (next)
+
+64 pattern slots as 8 banks (A–H) of 8 pads, format version 2. **Read
+`PATTERN_BANKS_PLAN.md` before changing pattern slots, the project file
+format, `Publish`'s banks or Jam recording.**
 
 ## Version Management
 

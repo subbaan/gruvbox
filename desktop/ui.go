@@ -88,6 +88,8 @@ type UI struct {
 	addTrackButton                     *widget.Button
 	bpm                                *commitEntry
 	patternPads, pageButtons           []*widget.Button
+	bankButton                         *widget.Button
+	bankView, bankFollows              int // the bank the pads show; the pattern it last followed
 	patternEmpty                       [groove.PatternCount]bool
 	pageFilled                         [4]bool
 	pageCount, playheadPage            int
@@ -212,13 +214,16 @@ func (u *UI) content() fyne.CanvasObject {
 		u.edit("Swing", func(p *groove.Project) error { p.Swing = v / 100; return nil })
 	})
 	swingBox := container.NewGridWrap(fyne.NewSize(110, 32), swing)
-	pads := container.NewHBox(widget.NewLabel("Pattern"))
+	u.bankButton = widget.NewButtonWithIcon("A", fynetheme.MenuDropDownIcon(), nil)
+	u.bankButton.IconPlacement = widget.ButtonIconTrailingText
+	u.bankButton.OnTapped = func() { u.showBankMenu(u.bankButton) }
+	pads := container.NewHBox(widget.NewLabel("Pattern"), u.bankButton)
 	u.patternPads = nil
-	for slot := 0; slot < groove.PatternCount; slot++ {
-		slot := slot
-		pad := widget.NewButton(strconv.Itoa(slot+1), func() { u.selectPattern(slot) })
-		u.patternPads = append(u.patternPads, pad)
-		pads.Add(pad)
+	for pad := 0; pad < groove.BankSize; pad++ {
+		pad := pad
+		button := widget.NewButton(strconv.Itoa(pad+1), func() { u.selectPattern(u.bankView*groove.BankSize + pad) })
+		u.patternPads = append(u.patternPads, button)
+		pads.Add(button)
 	}
 	u.patternMode = widget.NewButton("Pattern", func() { u.setSongMode(false) })
 	u.songMode = widget.NewButton("Song", func() { u.setSongMode(true) })
@@ -283,6 +288,10 @@ func (u *UI) content() fyne.CanvasObject {
 	u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyR, Modifier: fyne.KeyModifierControl}, func(fyne.Shortcut) { u.randomiseGroove() })
 	u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyR, Modifier: fyne.KeyModifierControl | fyne.KeyModifierShift}, func(fyne.Shortcut) { u.randomiseParts(groove.DrumParts) })
 	u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyG, Modifier: fyne.KeyModifierControl}, func(fyne.Shortcut) { u.growTrack() })
+	for bank := 0; bank < groove.BankCount; bank++ {
+		bank := bank
+		u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyName(strconv.Itoa(bank + 1)), Modifier: fyne.KeyModifierAlt}, func(fyne.Shortcut) { u.showBank(bank) })
+	}
 	u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyH, Modifier: fyne.KeyModifierControl}, func(fyne.Shortcut) { u.showHistory() })
 	u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyR, Modifier: fyne.KeyModifierControl | fyne.KeyModifierAlt}, func(fyne.Shortcut) { u.randomiseParts(groove.SynthParts) })
 	u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyS, Modifier: fyne.KeyModifierControl | fyne.KeyModifierShift}, func(fyne.Shortcut) { u.saveAs() })
@@ -464,14 +473,14 @@ func (u *UI) generate(action string) {
 	}
 	u.edit(action, func(p *groove.Project) error {
 		if action == "Variation" {
-			next := (p.Pattern + 1) % groove.PatternCount
+			next := groove.NextInBank(p.Pattern)
 			if err := groove.CopyPattern(p, p.Pattern, next, ""); err != nil {
 				return err
 			}
 		}
 		groove.GenerateIn(p, p.Track(id), p.Pattern, action)
 		if action == "Variation" {
-			return groove.SelectPattern(p, (p.Pattern+1)%groove.PatternCount)
+			return groove.SelectPattern(p, groove.NextInBank(p.Pattern))
 		}
 		return nil
 	})
@@ -599,7 +608,7 @@ func (u *UI) key(key fyne.KeyName) {
 		u.toggleSolo()
 		return
 	case fyne.Key1, fyne.Key2, fyne.Key3, fyne.Key4, fyne.Key5, fyne.Key6, fyne.Key7, fyne.Key8:
-		u.selectPattern(int(key[0] - '1'))
+		u.selectPattern(u.bankView*groove.BankSize + int(key[0]-'1'))
 		return
 	case fyne.KeyK:
 		u.setLockMode(!u.lockMode)
@@ -800,18 +809,28 @@ func pageLabel(page int, playing bool) string {
 	return label
 }
 
-// updatePatternPads shows the edited pattern, empty slots and a queued switch.
+// updatePatternPads shows the viewed bank: the edited pattern, empty slots
+// and a queued switch. The view follows the edited pattern when it changes
+// (song playback, history, Grow), and otherwise stays where it was put.
 func (u *UI) updatePatternPads() {
 	p := &u.session.Project
+	if p.Pattern != u.bankFollows {
+		u.bankFollows, u.bankView = p.Pattern, groove.BankOf(p.Pattern)
+	}
+	bank := string(rune('A' + u.bankView))
+	if u.bankButton.Text != bank {
+		u.bankButton.SetText(bank)
+	}
 	queued := u.player.QueuedPattern()
-	for slot, pad := range u.patternPads {
+	for n, pad := range u.patternPads {
+		slot := u.bankView*groove.BankSize + n
 		importance := widget.MediumImportance
 		if slot == p.Pattern {
 			importance = widget.HighImportance
 		} else if u.patternEmpty[slot] {
 			importance = widget.LowImportance
 		}
-		text := strconv.Itoa(slot + 1)
+		text := strconv.Itoa(slot%groove.BankSize + 1)
 		if slot == queued && u.player.Playing() {
 			text = "→" + text
 		}
@@ -859,7 +878,8 @@ func (u *UI) updatePageButtons() {
 
 const shortcutHelp = `Keyboard
 Space  Play / stop
-1–8  Select pattern
+1–8  Select pattern in the bank shown
+Alt+1–8  Show bank A–H
 [ ]  Previous / next step page
 ← →  Move step     ↑ ↓  Select track
 Enter  Toggle step     Delete  Clear step
@@ -887,3 +907,37 @@ Mouse
 Click a step to toggle it; right-click to select it only
 Right-click a track name  Rename, duplicate, colour, move, remove
 H / M / S chips  Hold / mute / solo`
+
+// showBankMenu lists banks A–H; ● marks banks holding patterns and the
+// current bank is ticked.
+func (u *UI) showBankMenu(button fyne.CanvasObject) {
+	items := []*fyne.MenuItem{}
+	for bank := 0; bank < groove.BankCount; bank++ {
+		bank := bank
+		used := 0
+		for pad := 0; pad < groove.BankSize; pad++ {
+			if !u.patternEmpty[bank*groove.BankSize+pad] {
+				used++
+			}
+		}
+		label := fmt.Sprintf("Bank %c   ○", 'A'+bank)
+		if used > 0 {
+			label = fmt.Sprintf("Bank %c   ● %d", 'A'+bank, used)
+		}
+		item := fyne.NewMenuItem(label, func() { u.showBank(bank) })
+		item.Checked = bank == u.bankView
+		item.Shortcut = &desktop.CustomShortcut{KeyName: fyne.KeyName(strconv.Itoa(bank + 1)), Modifier: fyne.KeyModifierAlt}
+		items = append(items, item)
+	}
+	canvas := u.window.Canvas()
+	widget.ShowPopUpMenuAtPosition(fyne.NewMenu("Banks", items...), canvas, fyne.CurrentApp().Driver().AbsolutePositionForObject(button).Add(fyne.NewPos(0, button.Size().Height)))
+}
+
+// showBank shows a bank's pads without changing the pattern.
+func (u *UI) showBank(bank int) {
+	if bank < 0 || bank >= groove.BankCount {
+		return
+	}
+	u.bankView = bank
+	u.updatePatternPads()
+}

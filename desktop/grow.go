@@ -34,12 +34,12 @@ func (u *UI) growTrack() {
 	if growFull {
 		choice.SetSelected(choice.Options[1])
 	}
-	lines := []string{fmt.Sprintf("Pattern %d becomes the peak. The other seven patterns get an intro, build, riser, fills, breakdown and a second peak made from it, and the song lays them out.", p.Pattern+1)}
+	lines := []string{fmt.Sprintf("Pattern %s becomes the peak. The other seven pads of bank %c get an intro, build, riser, fills, breakdown and a second peak made from it, and the song lays them out.", groove.SlotName(p.Pattern), 'A'+groove.BankOf(p.Pattern))}
 	slots, song := groove.GrowReplaces(p)
 	if len(slots) > 0 || song {
 		replaced := []string{}
 		for _, slot := range slots {
-			replaced = append(replaced, fmt.Sprint(slot+1))
+			replaced = append(replaced, groove.SlotName(slot))
 		}
 		what := "the song"
 		if len(slots) > 0 {

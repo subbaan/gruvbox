@@ -141,7 +141,7 @@ func TestPatternStateCopyFXLifetimeClearAndValidation(t *testing.T) {
 			t.Fatal("accepted invalid stored controls")
 		}
 	}
-	if StorePatternState(&p, -1, "") == nil || RecallPatternState(&p, 8, "") == nil || StorePatternState(&p, 0, "missing") == nil {
+	if StorePatternState(&p, -1, "") == nil || RecallPatternState(&p, PatternCount, "") == nil || StorePatternState(&p, 0, "missing") == nil {
 		t.Fatal("invalid snapshot target accepted")
 	}
 }

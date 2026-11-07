@@ -1,7 +1,6 @@
 package desktop
 
 import (
-	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
@@ -25,7 +24,7 @@ func (u *UI) keepPerformance() {
 		return err
 	})
 	if applied {
-		u.status.SetText(fmt.Sprintf("Kept performance in pattern %02d", slot+1))
+		u.status.SetText("Kept performance in pattern " + groove.SlotName(slot))
 	}
 }
 func (u *UI) performancePanel() fyne.CanvasObject {

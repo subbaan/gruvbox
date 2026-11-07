@@ -95,7 +95,7 @@ func (u *UI) phraseGenerator() {
 		if applying {
 			return
 		}
-		target.SetText(fmt.Sprintf("%s / pattern %02d · %d bars in 4/4 · sixteenth notes", t.Name, slot+1, options.Bars))
+		target.SetText(fmt.Sprintf("%s / pattern %s · %d bars in 4/4 · sixteenth notes", t.Name, groove.SlotName(slot), options.Bars))
 		setEnabled := func(enabled bool, controls ...fyne.Disableable) {
 			for _, control := range controls {
 				if enabled {

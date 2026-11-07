@@ -7,6 +7,7 @@ import (
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
+	"github.com/subbaan/gruvbox/groove"
 )
 
 const (
@@ -145,7 +146,7 @@ func (r *timelineRenderer) draw(size fyne.Size) {
 		}
 		ink := u.scheme.TextOn(fill)
 		label(fmt.Sprintf("%02d %s", i+1, s.Name), left, 10, w, ink, 12, true)
-		label(fmt.Sprintf("P%02d · %d bar%s", s.Pattern+1, bars, map[bool]string{true: "", false: "s"}[bars == 1]), left, 28, w, ink, 10, false)
+		label(fmt.Sprintf("%s · %d bar%s", groove.SlotName(s.Pattern), bars, map[bool]string{true: "", false: "s"}[bars == 1]), left, 28, w, ink, 10, false)
 		left += w
 	}
 	r.lit = canvas.NewRectangle(translucent(roles.Playback, 60))

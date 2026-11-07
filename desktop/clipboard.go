@@ -78,7 +78,7 @@ func (u *UI) copyPattern() {
 		copied.Steps[i] = cloneStep(s)
 	}
 	u.patternClip = &copied
-	u.status.SetText(fmt.Sprintf("Copied %s pattern %02d", t.Name, u.session.Project.Pattern+1))
+	u.status.SetText(fmt.Sprintf("Copied %s pattern %s", t.Name, groove.SlotName(u.session.Project.Pattern)))
 }
 
 // pastePattern replaces the selected track's steps and step size; its sound
