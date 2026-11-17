@@ -3,7 +3,6 @@ package desktop
 import (
 	"fmt"
 	"math"
-	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -42,19 +41,10 @@ func (u *UI) dualSoundPanel(t *groove.Track) fyne.CanvasObject {
 				u.edit("Set "+p.Name, func(project *groove.Project) error { project.Track(id).Parameters[p.ID] = value; return nil })
 			}
 			options := groove.ParameterChoices(kind, key)
-			switch key {
-			case "osc1_wave", "osc2_wave":
-				options = []string{"Saw", "Pulse", "Triangle", "Sine"}
-			case "slope":
-				options = []string{"12 dB low-pass", "24 dB low-pass"}
-			case "legato":
-				options = []string{"Retrigger envelopes on slide", "Hold envelopes on slide"}
-			}
 			if len(options) > 0 {
 				box.Add(widget.NewLabel(p.Name))
 				box.Add(u.boundSelect(options, func() int { return int(value(key)) }, func(i int) { commit(float64(i)) }))
-			} else if strings.HasSuffix(key, "_attack") || strings.HasSuffix(key, "_decay") || strings.HasSuffix(key, "_release") ||
-				kind == groove.SH101 && (key == "attack" || key == "decay" || key == "release") {
+			} else if groove.TimeParameter(kind, key) {
 				// Logarithmic time controls leave useful room for both millisecond
 				// transients and slow envelopes; actual seconds remain in the model.
 				toSlider := func(seconds float64) float64 { return math.Log(seconds/p.Min) / math.Log(p.Max/p.Min) }
@@ -67,11 +57,12 @@ func (u *UI) dualSoundPanel(t *groove.Track) fyne.CanvasObject {
 		return box
 	}
 	var accordion *widget.Accordion
-	about := "Mono voice · slide notes glide; hold mode keeps envelopes running. Randomise keeps tuning and attack/sustain shape. Use note length for sustained sounds."
+	about := "Dual synth · two oscillators into a 12/24 dB filter with its own envelope. Interval stacks oscillator 2 (a fifth, an octave) so each note is a chord of two. Sync restarts oscillator 2 with oscillator 1: raise its interval, or Osc 2 sweep (the filter envelope bending its pitch up to two octaves), for the tearing sync sound. FM amount bends oscillator 1's phase with oscillator 2 (sines give bells); ring mod multiplies them (metallic). Unison adds two detuned copies of oscillator 1. Slide notes glide; hold mode keeps envelopes running. Randomise keeps tuning, the interval and the attack/sustain shape."
 	if kind == groove.Dual {
 		accordion = widget.NewAccordion(
 			widget.NewAccordionItem("Filter", section("cutoff", "resonance", "drive", "env_amount", "slope", "keytrack")),
-			widget.NewAccordionItem("Oscillators", section("osc1_wave", "osc2_wave", "osc2_level", "osc2_tune", "detune", "pulse", "sub", "noise", "tune")),
+			widget.NewAccordionItem("Oscillators", section("osc1_wave", "osc1_level", "unison", "osc2_wave", "osc2_level", "osc2_tune", "detune", "pulse", "sub", "noise", "tune")),
+			widget.NewAccordionItem("Sync, FM and ring mod", section("sync", "osc2_env", "fm", "ring")),
 			widget.NewAccordionItem("Amplitude envelope", section("amp_attack", "amp_decay", "amp_sustain", "amp_release")),
 			widget.NewAccordionItem("Filter envelope", section("filter_attack", "filter_decay", "filter_sustain", "filter_release")),
 			widget.NewAccordionItem("Glide / accent", section("glide", "legato", "accent")),

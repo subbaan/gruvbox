@@ -108,7 +108,7 @@ type UI struct {
 }
 
 func Run(themeDir string, noAudio bool) error {
-	a := app.NewWithID("io.subbass.gruvbox")
+	a := app.NewWithID("io.github.subbaan.gruvbox")
 	w := a.NewWindow("Gruvbox 3")
 	w.SetMaster()
 	u := newUI(a, w, theme.Library{Dir: themeDir})

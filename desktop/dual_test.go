@@ -16,10 +16,10 @@ func TestDualEnvelopeSliderLiveUndoAndSectionRetention(t *testing.T) {
 	w.SetContent(u.content())
 	track := groove.NewTrack(groove.Dual, 0)
 	u.edit("Add Dual", func(p *groove.Project) error { p.Tracks = append(p.Tracks, track); u.selected = track.ID; return nil })
-	u.dualAccordion.Open(2)
+	u.dualAccordion.Open(3)
 	u.dualAccordion.Close(0)
 	before := u.selectedTrack().Parameters["amp_attack"]
-	attack := findSlider(u.dualAccordion.Items[2].Detail, "Attack (s)")
+	attack := findSlider(u.dualAccordion.Items[3].Detail, "Attack (s)")
 	if attack == nil {
 		t.Fatal("amp attack slider missing")
 	}
@@ -29,11 +29,11 @@ func TestDualEnvelopeSliderLiveUndoAndSectionRetention(t *testing.T) {
 		t.Fatal("envelope slider is not live")
 	}
 	attack.DragEnd()
-	if !u.dualAccordion.Items[2].Open || u.dualAccordion.Items[0].Open {
+	if !u.dualAccordion.Items[3].Open || u.dualAccordion.Items[0].Open {
 		t.Fatal("release lost the open sound section")
 	}
 	u.undo()
-	if u.selectedTrack().Parameters["amp_attack"] != before || !u.dualAccordion.Items[2].Open {
+	if u.selectedTrack().Parameters["amp_attack"] != before || !u.dualAccordion.Items[3].Open {
 		t.Fatal("envelope undo or section retention failed")
 	}
 	if !u.selectedTrack().Kind.Capabilities().NoteLengths || !u.selectedTrack().Kind.Capabilities().Slide {

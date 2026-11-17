@@ -4,35 +4,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Gruvbox is a desktop and terminal groovebox featuring TB-303 bass synthesizer emulation, analog-modeled drum synthesis, step sequencer, and per-channel effects. Current version: 3.0.0-alpha.61
+Gruvbox is a desktop groovebox (Fyne) with TB-303, Dual synth and SH-101
+voices, analog-modelled drums, a sampler, per-track effects, generated
+grooves, song mode and WAV export. A legacy terminal UI runs with `--tui`.
+Current version: 3.0.0-alpha.62
 
-## Desktop UI redesign (in progress)
+**Read `docs/DEVELOPMENT.md` first**: package layout, how the desktop app
+fits together, the real-time audio rules, tests, how to extend it and how to
+release. This file only lists the working rules and where to look.
 
-The desktop GUI (`desktop/`) is being reworked in phases across several sessions.
-**Read `UI_REDESIGN_PLAN.md` before changing anything in `desktop/`.** It holds the
-audit, the phase checklist, the next task, conventions (including headless
-screenshots via `GRUVBOX_SHOTS=<dir> go test ./desktop -run TestScreenshots`) and a
-session log. Update it at the end of every session.
+## Working rules
 
-## Sound variety work (complete, alpha.41)
+- Every change bumps the patch version in `VERSION`, `config/config.go`,
+  `README.md` and this file, and adds a `CHANGELOG.md` entry.
+- Build with `go build -trimpath -o gruvbox` (binary in the project root) and
+  run `go vet ./...` and `go test ./...` before handing off.
+- Audio-thread code (`Player.Render` and everything it calls) never
+  allocates, locks, does I/O or blocks. Test with `testing.AllocsPerRun`.
+- New voice controls default to "off", so old projects and presets sound the
+  same; append parameters and LFO targets, never reorder them.
+- `README.md` is for users. Put developer material in `docs/DEVELOPMENT.md`,
+  and keep both current in the same change as the code.
+- When driving the real app, send input only to your own process's window
+  (`xdotool search --pid`) and stop it with `kill <pid>`, never `pkill`.
 
-Generation, sounds, the 303 voice and effects were extended in four phases.
-**Read `SOUND_VARIETY_PLAN.md` before changing `groove/` generation,
-`synth/` or `effects/`**: it records where each piece lives, the level and
-default-compatibility rules, and possible follow-ups.
+## Read before changing
 
-## Fit groove (alpha.56)
-
-`Project.Style` and `Track.Role` let **+ Track** and **G** (`FitPart`,
-`groove/fit.go`) write parts that suit the groove. The session log at the end
-of `SOUND_VARIETY_PLAN.md` describes it. Keep both fields `omitempty`.
-
-## Track builder work (complete, alpha.47)
-
-Hold parts, Grow into a track, Jam mode and Groove history. **Read
-`TRACK_BUILDER_PLAN.md` before changing randomise, pattern slots or song
-generation**: it records the design, the playback facts it relies on and a
-session log.
+- `desktop/`: **`UI_REDESIGN_PLAN.md`** (conventions, headless screenshots
+  via `GRUVBOX_SHOTS=<dir> go test ./desktop -run TestScreenshots`, session
+  log; update it at the end of a session).
+- `groove/` generation, `synth/`, `effects/`: **`SOUND_VARIETY_PLAN.md`**
+  (where each piece lives, level and default-compatibility rules; its
+  session log covers Fit groove, the SH-101 and the alpha.62 Dual/SH-101
+  split). `Project.Style` and `Track.Role` stay `omitempty`.
+- Randomise, pattern slots, song generation: **`TRACK_BUILDER_PLAN.md`**.
+- Pattern slots, the file format, `Publish`'s banks, Jam recording:
+  **`PATTERN_BANKS_PLAN.md`** (64 slots, A–H × 8, format version 2; Jam →
+  Song is the next idea there).
 
 ## Repository
 
@@ -40,136 +48,3 @@ https://github.com/subbaan/gruvbox (public, MIT), branch `main`; Go module
 `github.com/subbaan/gruvbox`. Releases are tagged `v<VERSION>` as
 pre-releases with `gruvbox-linux-x86_64` attached. Only what is needed to
 build is checked in; see `.gitignore`.
-
-## Pattern banks (alpha.51) and Jam → Song (next)
-
-64 pattern slots as 8 banks (A–H) of 8 pads, format version 2. **Read
-`PATTERN_BANKS_PLAN.md` before changing pattern slots, the project file
-format, `Publish`'s banks or Jam recording.**
-
-## Version Management
-
-CRITICAL: Always update the VERSION file when making code changes. The version follows semantic versioning (MAJOR.MINOR.PATCH).
-
-## Build Commands
-
-```bash
-# Install dependencies
-go mod tidy
-
-# Build the application
-go build -trimpath -o gruvbox
-
-# Run the application
-./gruvbox
-
-# Show version
-./gruvbox --version
-```
-
-## Architecture Overview
-
-### Real-Time Audio Thread Safety
-
-The audio engine follows strict real-time audio programming principles. The `Engine.Read()` method is the core audio callback and must NEVER:
-- Perform dynamic memory allocation (malloc/new)
-- Use mutex locks
-- Do I/O operations (printf, file I/O)
-- Use blocking channel operations
-
-All buffers are pre-allocated. Communication between UI thread and audio thread uses lock-free ring buffers (`util/ring_buffer.go`).
-
-### Core Components
-
-**Audio Engine** (`audio/engine.go`):
-- Real-time audio callback via oto v3 integration
-- Manages all synthesizers, drums, samplers, and the sequencer
-- Pre-allocated buffers to avoid GC in audio thread
-- Sample rate: 44100 Hz, Buffer size: 256 samples (~5.8ms latency)
-
-**Mixer** (`audio/mixer.go`):
-- 8 independent channels with pre-allocated buffers
-- Per-channel effects chains (distortion, delay, reverb)
-- Level, pan, mute, solo controls
-- Constant-power panning and brick-wall limiter
-
-**TB-303 Synthesizer** (`synth/tb303.go`):
-- Anti-aliased oscillators using polyBLEP (sawtooth & square)
-- Diode ladder filter (24dB/oct) with topology-preserving transform
-- Decay envelope generators with exponential curves
-- Accent, slide/portamento, sub-oscillator, and dual LFOs
-- Two independent instances (bass + lead)
-
-**SH-101** (`synth/sh101.go`, alpha.58):
-- One VCO (saw, variable pulse, a sub locked to VCO wraps, noise), a ZDF
-  four-pole OTA ladder at 2× oversampling, one ADSR, an internal LFO and
-  exponential portamento
-- In `groove/` it shares the `monoVoice` slot (`voice.mono`) with the Dual
-  synth. Its switches are `synth.SH101Choices`, shown by `ParameterChoices`.
-  Its role recipes are `sh101Parts` in `groove/style.go`: the notes come from
-  the style's Dual recipe for the role, the sound is the SH-101's own
-
-**Drum Synthesis** (`synth/drums/`):
-- Analog-modeled kick, snare, and hi-hats
-- Each drum has dedicated voice implementation
-- Integrated with sequencer via `drums.DrumVoice` interface
-
-**Sequencer** (`sequencer/`):
-- Sample-accurate clock with BPM control (40-300 BPM)
-- Step sequencer with 16/32/64 step patterns
-- Pattern bank system: 16 patterns per instrument (96 total patterns)
-- Song mode for arranging patterns into complete tracks
-- Each step stores: note, velocity, accent, slide, probability
-
-**Effects** (`effects/`):
-- Effect interface and chain manager for serial processing
-- Distortion, delay (with tone filter), reverb (Freeverb algorithm)
-- Per-channel effects chains integrated with mixer
-- All effects have dry/wet mix control
-
-**Project Management** (`project/`):
-- Complete state serialization to JSON (.gruvbox files)
-- Stores all patterns, synth/drum settings, effects, mixer state
-- Projects saved to `projects/` directory
-- Human-readable format for version control
-
-**Terminal UI** (`ui/`):
-- Bubble Tea framework for TUI
-- Multiple views: Sequencer, Synth, Drums, Effects, Mixer, Song, Sampler
-- Real-time parameter editing without audio glitches
-- Gruvbox color scheme styling
-
-### Key Architectural Patterns
-
-1. **Lock-Free Communication**: UI → Audio thread uses ring buffers, never locks
-2. **Pre-Allocation**: All audio buffers allocated at startup to avoid GC pressure
-3. **Pattern Bank System**: Each instrument has 16 pattern slots that store both step data AND sound settings
-4. **Effect Chains**: Effects are organized in serial chains per mixer channel
-5. **Sample-Accurate Timing**: Sequencer clock generates precise timing events
-
-## Development Workflow
-
-When adding features:
-1. Update VERSION file first
-2. For audio path changes, ensure no allocations in `Engine.Read()`
-3. For UI changes, use Bubble Tea's message passing (never call audio engine directly from keyboard handlers)
-4. For new parameters, add to ring buffer communication if UI needs to control them
-5. Test with audio running to ensure no dropouts or glitches
-
-When modifying synthesizers or effects:
-- Use pre-allocated buffers passed to `Process()` methods
-- Avoid `math` package in audio thread (use `util/math.go` fast approximations)
-- Test with high CPU load to verify real-time performance
-
-## Audio Configuration
-
-- Sample rate: 44100 Hz (constant defined in `audio/constants.go`)
-- Buffer size: 256 samples
-- Format: Stereo 16-bit signed integer
-- Channels: 8 mixer channels (TB303 #1, TB303 #2, Kick, Snare, HH Closed, HH Open, Sampler1, Sampler2)
-
-## Dependencies
-
-- `github.com/ebitengine/oto/v3` - Low-latency cross-platform audio
-- `github.com/charmbracelet/bubbletea` - Terminal UI framework
-- `github.com/charmbracelet/lipgloss` - TUI styling

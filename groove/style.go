@@ -2,6 +2,7 @@ package groove
 
 import (
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"slices"
 	"strings"
@@ -37,7 +38,7 @@ type partRecipe struct {
 	patches []string // bank sounds (FactorySounds names) to choose from
 	hold    bool     // notes ring on to the next one (pads)
 	level   float64  // track level, if set
-	role    string   // a Dual part's role (Track.Role)
+	role    string   // a Dual or SH-101 part's role (Track.Role)
 }
 
 type GrooveStyle struct {
@@ -50,6 +51,7 @@ type GrooveStyle struct {
 	extras       []extraPart
 	layout       layoutRecipe
 	dual         []partRecipe
+	sh101        []partRecipe
 }
 
 // A groove's layout (alpha.47) is drawn from the whole pool of track kinds:
@@ -96,19 +98,39 @@ func (s GrooveStyle) extra(kind Kind) (extraPart, bool) {
 }
 
 // Dual synth parts. "Layer" doubles the 303 lead an octave down; hold lets
-// notes ring to the next one, for pads.
+// notes ring to the next one, for pads. Since alpha.62 the Dual plays what
+// two oscillators suit: interval stabs and held, sliding melodies with sync,
+// unison and FM sounds; the SH-101 plays arpeggios and sequences
+// (sh101Arp, sh101Sequence).
 var (
-	dualCounter = partRecipe{role: "counter", level: .36, patch: .6, patches: []string{"Pulse pluck", "Detuned lead"}, actions: []string{"Sparse"}, octave: 12,
+	dualCounter = partRecipe{role: "counter", level: .36, patch: .6, patches: []string{"Pulse pluck", "Detuned lead", "FM bell"}, actions: []string{"Sparse"}, octave: 12,
 		sound: map[string]span{"cutoff": {.35, .6}, "resonance": {.25, .55}, "env_amount": {.3, .6}, "amp_decay": {.12, .3}, "amp_sustain": {.1, .4}},
 		fx:    []fxChance{delayDotted, room}}
-	dualStab = partRecipe{role: "stab", level: .36, patch: .6, patches: []string{"Pulse pluck", "Detuned lead"}, actions: []string{"Busy", "Sparse"}, octave: 12,
-		sound: map[string]span{"cutoff": {.4, .65}, "resonance": {.3, .6}, "env_amount": {.4, .7}, "amp_decay": {.06, .15}, "amp_sustain": {0, .1}, "amp_release": {.03, .08}},
-		fx:    []fxChance{chorus, delayEighth}}
-	dualPad = partRecipe{role: "pad", level: .34, patch: .6, patches: []string{"Slow pad", "Dub interval"}, actions: []string{"Sparse"}, octave: 12, hold: true,
+	dualStab = partRecipe{role: "stab", level: .5, patch: .7, patches: []string{"Fifth stab", "Octave stab", "Minor stack", "Dub interval", "Ring clang"}, actions: []string{"Stabs"}, octave: 12,
+		sound: map[string]span{"cutoff": {.35, .6}, "resonance": {.3, .6}, "env_amount": {.4, .7}, "amp_decay": {.08, .16}, "amp_sustain": {0, .1}, "amp_release": {.05, .12},
+			"osc2_tune": {7, 7}, "osc2_level": {.6, .85}, "unison": {.15, .4}},
+		fx: []fxChance{chorus, delayEighth}}
+	dualPad = partRecipe{role: "pad", level: .34, patch: .6, patches: []string{"Slow pad", "Dub interval", "Sync sweep"}, actions: []string{"Sparse"}, octave: 12, hold: true,
 		sound: map[string]span{"cutoff": {.25, .45}, "resonance": {.15, .4}, "amp_attack": {.05, .3}, "amp_sustain": {.5, .8}, "amp_release": {.3, .8}, "env_amount": {.1, .3}},
 		fx:    []fxChance{{Delay, .9, map[string]span{"division": {.1875, .1875}, "feedback": {.45, .65}, "mix": {.2, .35}}}, chorus, room}}
-	dualLayer = partRecipe{role: "layer", level: .28, patch: .5, patches: []string{"Rounded mono", "Rubber bass"}, actions: []string{"Layer"},
+	dualLayer = partRecipe{role: "layer", level: .28, patch: .5, patches: []string{"Rounded mono", "Rubber bass", "FM bass"}, actions: []string{"Layer"},
 		sound: map[string]span{"cutoff": {.2, .35}, "resonance": {.1, .3}, "detune": {8, 16}, "osc2_level": {.35, .6}, "sub": {.3, .55}, "amp_decay": {.15, .35}}}
+	dualMelody = partRecipe{role: "melody", level: .24, patch: .7, patches: []string{"Sync lead", "Unison lead", "Sync sweep", "Detuned lead", "FM bell"}, actions: []string{"Lead"}, octave: 12, hold: true,
+		sound: map[string]span{"cutoff": {.4, .6}, "resonance": {.15, .4}, "env_amount": {.2, .45}, "amp_sustain": {.6, .85}, "amp_release": {.15, .35}, "glide": {.06, .14}, "unison": {.2, .5}},
+		fx:    []fxChance{delayDotted, room}}
+)
+
+// SH-101 parts with notes of their own (alpha.62): the arpeggiator and the
+// step sequencer. Its bass plays sequences or basslines.
+var (
+	sh101Arp = partRecipe{role: "arp", level: .45, patch: .65, patches: []string{"Rubber pluck", "Squelch stab", "PWM lead", "Sample and hold"}, actions: []string{"Arp"}, octave: 12,
+		sound: map[string]span{"cutoff": {.35, .6}, "resonance": {.3, .65}, "env_amount": {.4, .75}, "decay": {.08, .2}, "sustain": {0, .15}},
+		fx:    []fxChance{delayDotted, room}}
+	sh101Sequence = partRecipe{role: "sequence", level: .45, patch: .65, patches: []string{"Acid 101", "Rubber pluck", "Sample and hold", "Squelch stab"}, actions: []string{"Sequence"}, octave: 12,
+		sound: map[string]span{"cutoff": {.3, .55}, "resonance": {.35, .7}, "env_amount": {.4, .8}, "decay": {.1, .25}, "sustain": {0, .2}, "glide_mode": {2, 2}},
+		fx:    []fxChance{delayEighth, dirt}}
+	sh101Bass = partRecipe{role: "bass", patch: .7, patches: []string{"101 bass", "Sub pressure", "Acid 101", "Rubber pluck"}, actions: []string{"Sequence", "Bassline"},
+		sound: sh101Parts["bass"].sound}
 )
 
 // sh101Parts are the SH-101's sounds for each role in a groove. The notes
@@ -130,9 +152,24 @@ var sh101Parts = map[string]partRecipe{
 		sound: map[string]span{"cutoff": {.2, .35}, "resonance": {.1, .3}, "sub": {.5, .8}, "decay": {.15, .35}}},
 }
 
-// sh101Recipe is the SH-101's recipe for a role: the notes and level of the
-// style's part for that role (as a Dual would play it), with an SH-101 sound.
+// sh101Recipe is the SH-101's recipe for a role: its own parts (arp,
+// sequence, bass); for the roles it shares with the Dual (saved before
+// alpha.62), the notes and level of the style's Dual part with an SH-101
+// sound.
 func sh101Recipe(role string, style GrooveStyle, styled bool) partRecipe {
+	switch role {
+	case "bass", "lead":
+		return sh101Bass
+	case "arp":
+		return sh101Arp
+	case "sequence":
+		return sh101Sequence
+	}
+	if !styled {
+		recipe := sh101Sequence
+		recipe.role = role
+		return recipe
+	}
 	notes := roleRecipe(Dual, role, style, styled)
 	part, ok := sh101Parts[role]
 	if !ok {
@@ -167,7 +204,8 @@ var GrooveStyles = []GrooveStyle{
 		},
 		extras: extras([]string{"Backbeat", "Stacked"}, []string{"Syncopated", "Sparse"}, []string{"Call", "Sparse"}, []string{"Downbeat"}),
 		layout: layoutRecipe{snare: .6, clap: .15, both: .25, dual: .3, optional: map[Kind]float64{OpenHat: .9, Rimshot: .3, Tom: .25, Crash: .5}},
-		dual:   []partRecipe{dualCounter, dualStab},
+		dual:   []partRecipe{dualCounter, dualStab, dualMelody},
+		sh101:  []partRecipe{sh101Sequence, sh101Sequence, sh101Arp},
 	},
 	{
 		Name: "Minimal", bars: []int{1, 2, 4, 4}, bpm: span{120, 128}, swing: span{.04, .16},
@@ -186,7 +224,8 @@ var GrooveStyles = []GrooveStyle{
 		},
 		extras: extras([]string{"Halftime", "Offbeat flam", "Backbeat"}, []string{"Syncopated", "Clave", "Sparse", "Rolling"}, []string{"Sparse", "Call"}, []string{"Downbeat", "Sparse"}),
 		layout: layoutRecipe{snare: .4, clap: .35, both: .25, dual: .35, optional: map[Kind]float64{OpenHat: .6, Rimshot: .8, Tom: .3, Crash: .3}},
-		dual:   []partRecipe{dualCounter, dualPad},
+		dual:   []partRecipe{dualCounter, dualPad, dualStab},
+		sh101:  []partRecipe{sh101Sequence, sh101Arp},
 	},
 	{
 		Name: "Electro", bars: []int{1, 1, 2, 4}, bpm: span{118, 132}, swing: span{0, .04},
@@ -205,7 +244,8 @@ var GrooveStyles = []GrooveStyle{
 		},
 		extras: extras([]string{"Backbeat", "Stacked", "Offbeat flam"}, []string{"Clave", "Syncopated"}, []string{"Call", "Toms"}, []string{"Downbeat"}),
 		layout: layoutRecipe{snare: .35, clap: .3, both: .35, dual: .5, optional: map[Kind]float64{OpenHat: .5, Rimshot: .5, Tom: .6, Crash: .3}},
-		dual:   []partRecipe{dualStab, dualStab, dualLayer},
+		dual:   []partRecipe{dualStab, dualStab, dualLayer, dualMelody},
+		sh101:  []partRecipe{sh101Arp, sh101Sequence, sh101Arp},
 	},
 	{
 		Name: "Dub", bars: []int{2, 4, 4}, bpm: span{112, 124}, swing: span{.06, .2},
@@ -224,7 +264,8 @@ var GrooveStyles = []GrooveStyle{
 		},
 		extras: extras([]string{"Halftime", "Offbeat flam"}, []string{"Sparse", "Rolling", "Clave"}, []string{"Sparse", "Call"}, []string{"Downbeat", "Sparse"}),
 		layout: layoutRecipe{snare: .5, clap: .3, both: .2, dual: .5, optional: map[Kind]float64{OpenHat: .7, Rimshot: .8, Tom: .4, Crash: .3}},
-		dual:   []partRecipe{dualPad, dualPad, dualCounter},
+		dual:   []partRecipe{dualPad, dualPad, dualCounter, dualStab},
+		sh101:  []partRecipe{sh101Sequence, sh101Arp},
 	},
 	{
 		Name: "Hypnotic", bars: []int{1, 2, 4, 4}, bpm: span{128, 140}, swing: span{0, .06},
@@ -243,7 +284,8 @@ var GrooveStyles = []GrooveStyle{
 		},
 		extras: extras([]string{"Backbeat", "Halftime", "Stacked"}, []string{"Rolling", "Syncopated"}, []string{"Toms", "Sparse"}, []string{"Downbeat"}),
 		layout: layoutRecipe{snare: .45, clap: .25, both: .3, dual: .35, optional: map[Kind]float64{OpenHat: .9, Rimshot: .5, Tom: .3, Crash: .45}},
-		dual:   []partRecipe{dualCounter, dualPad, dualLayer},
+		dual:   []partRecipe{dualCounter, dualPad, dualLayer, dualMelody},
+		sh101:  []partRecipe{sh101Sequence, sh101Arp, sh101Arp},
 	},
 	{
 		Name: "Broken", bars: []int{2, 2, 4}, bpm: span{126, 138}, swing: span{.08, .22},
@@ -262,7 +304,8 @@ var GrooveStyles = []GrooveStyle{
 		},
 		extras: extras([]string{"Offbeat flam", "Stacked", "Backbeat"}, []string{"Syncopated", "Clave", "Rolling"}, []string{"Call", "Toms", "Sparse"}, []string{"Downbeat", "Sparse"}),
 		layout: layoutRecipe{snare: .4, clap: .25, both: .35, dual: .45, optional: map[Kind]float64{OpenHat: .6, Rimshot: .7, Tom: .5, Crash: .3}},
-		dual:   []partRecipe{dualLayer, dualLayer, dualStab},
+		dual:   []partRecipe{dualLayer, dualLayer, dualStab, dualMelody},
+		sh101:  []partRecipe{sh101Sequence, sh101Arp},
 	},
 }
 
@@ -444,7 +487,7 @@ func (s GrooveStyle) recipeFor(kind Kind, acids int, r *rand.Rand) partRecipe {
 	case Dual:
 		return s.dual[r.IntN(len(s.dual))]
 	case SH101:
-		return sh101Recipe(s.dual[r.IntN(len(s.dual))].role, s, true)
+		return s.sh101[r.IntN(len(s.sh101))]
 	}
 	if x, ok := s.extra(kind); ok {
 		return x.recipe
@@ -578,9 +621,30 @@ func jitterSoundBy(t *Track, r *rand.Rand, share float64) {
 		if v := t.Parameters[param.ID]; v == param.Default && (v == param.Min || v == param.Max) {
 			continue
 		}
+		x := r.Float64()*2 - 1
+		if TimeParameter(t.Kind, param.ID) {
+			// Envelope times in seconds span milliseconds to seconds, so a share
+			// of the range would wipe out a short decay: scale them instead
+			// (±27% at share .06).
+			t.Parameters[param.ID] = min(param.Max, max(param.Min, t.Parameters[param.ID]*math.Exp(x*share*4)))
+			continue
+		}
 		width := (param.Max - param.Min) * share
-		t.Parameters[param.ID] = min(param.Max, max(param.Min, t.Parameters[param.ID]+(r.Float64()*2-1)*width))
+		t.Parameters[param.ID] = min(param.Max, max(param.Min, t.Parameters[param.ID]+x*width))
 	}
+}
+
+// TimeParameter reports whether a control is an envelope time in seconds
+// (the Dual's and SH-101's attack, decay and release), which varies and
+// shows on a logarithmic scale.
+func TimeParameter(kind Kind, id string) bool {
+	switch kind {
+	case Dual:
+		return strings.HasSuffix(id, "_attack") || strings.HasSuffix(id, "_decay") || strings.HasSuffix(id, "_release")
+	case SH101:
+		return id == "attack" || id == "decay" || id == "release"
+	}
+	return false
 }
 
 // applyRecipe returns the bank sound the part started on, if any.
@@ -866,7 +930,7 @@ func RandomiseGrooveParts(p *Project, r *rand.Rand, part GroovePart) string {
 			recipe, ok = style.dual[r.IntN(len(style.dual))], true
 		}
 		if t.Kind == SH101 {
-			recipe, ok = sh101Recipe(style.dual[r.IntN(len(style.dual))].role, style, true), true
+			recipe, ok = style.sh101[r.IntN(len(style.sh101))], true
 		}
 		if ok && !t.Kind.synthPart() && (r.Float64() >= style.playChance(*p, t.Kind) || t.Kind == Crash && steps < 32) {
 			recipe.actions = nil

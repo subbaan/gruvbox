@@ -205,3 +205,10 @@ user what they want next. Candidate follow-ups noticed along the way:
   - **Cycle:** `loopCycle` is the LCM of each track's length in 1/64 ticks × the LCM of its "every N" values, divided by the longest track. It falls back to 1 for a swung odd length or more than 16 loops. Songs can't be wrapped (an error).
   - **Desktop:** the export window has an **Effect tail** select (`exportTailModes`): Loop / Add tail at end / No tail for a pattern, the last two for a song. The slider becomes "Longest tail" for Loop and hides for No tail. The window is 660×380, and the help line was shortened, because Fyne underestimated the wrapped label's height and the progress bar covered it.
   - **Tests:** `TestWrappedLoopCarriesItsTailIntoTheStart` (equal to a running loop after the warm-up), `TestLoopCycleLinesUpTracksAndEverySteps`, `desktop.TestExportWindowWrapsPatternTails`.
+- **2026-11-17 (alpha.62):** Dual panel: new **Sync, FM and ring mod**
+  section (index 2, so later sections moved down one; `desktop/dual_test.go`
+  updated), Unison and Oscillator 1 level under Oscillators. Switch names
+  come from `groove.ParameterChoices` (`synth.DualChoices`) instead of a
+  switch in `dual.go`; log time sliders use `groove.TimeParameter`. New
+  screenshot `dual`. Labels over ~13 characters are cut off in the panel,
+  so keep control names short ("Osc 2 sweep", "FM amount").

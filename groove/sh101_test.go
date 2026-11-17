@@ -150,3 +150,21 @@ func TestNewGroovesSometimesUseTheSH101(t *testing.T) {
 		t.Fatalf("SH-101 in %d of 120 new grooves", seen)
 	}
 }
+
+// The Dual bank stays near the default's level, played one note a beat, like
+// the SH-101's.
+func TestDualBankIsBalanced(t *testing.T) {
+	plain := drumRMS(t, Dual, CaptureSound(NewTrack(Dual, 0), "Plain"))
+	names := map[string]bool{}
+	for _, preset := range FactorySounds(Dual) {
+		if names[preset.Name] {
+			t.Fatalf("duplicate Dual sound %q", preset.Name)
+		}
+		names[preset.Name] = true
+		db := 20 * math.Log10(drumRMS(t, Dual, preset)/plain)
+		t.Logf("%-16s %+5.1f dB", preset.Name, db)
+		if db < -18 || db > 9 {
+			t.Errorf("Dual %s is %+.1f dB against the default", preset.Name, db)
+		}
+	}
+}

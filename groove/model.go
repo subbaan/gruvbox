@@ -460,6 +460,9 @@ func ParameterChoices(kind Kind, id string) []string {
 	if kind == SH101 {
 		return synth.SH101Choices[id]
 	}
+	if kind == Dual {
+		return synth.DualChoices[id]
+	}
 	if kind != Acid {
 		return nil
 	}

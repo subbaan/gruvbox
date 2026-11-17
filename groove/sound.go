@@ -25,7 +25,7 @@ func DefaultLFOs() [2]LFO {
 func LFOTargets(kind Kind) []string {
 	switch kind {
 	case Dual:
-		return []string{"None", "Cutoff", "Resonance", "Pitch", "Pulse width", "Oscillator 2 detune", "Oscillator 2 level", "Filter drive", "Volume"}
+		return append([]string(nil), synth.DualLFOTargets...)
 	case SH101:
 		return append([]string(nil), synth.SH101LFOTargets...)
 	case Acid:
@@ -149,6 +149,26 @@ func RandomiseSoundFrom(t *Track, r *rand.Rand) string {
 		set("amp_decay", .12, .6)
 		set("amp_release", .06, .4)
 		set("filter_decay", .08, .7)
+		// The two-oscillator tricks, each now and then, so most results
+		// still sound like the plain voice.
+		t.Parameters["osc1_level"], t.Parameters["sync"], t.Parameters["osc2_env"] = 1, 0, 0
+		t.Parameters["fm"], t.Parameters["ring"], t.Parameters["unison"] = 0, 0, 0
+		switch x := r.Float64(); {
+		case x < .15:
+			t.Parameters["sync"] = 1
+			set("osc2_level", .7, 1)
+			set("osc1_level", 0, .5)
+			set("osc2_env", .15, .6)
+		case x < .27:
+			t.Parameters["osc1_wave"] = float64(2 + r.IntN(2))
+			set("fm", .1, .45)
+		case x < .35:
+			set("ring", .3, .8)
+			set("osc1_level", .1, .5)
+		}
+		if r.Float64() < .25 {
+			set("unison", .2, .7)
+		}
 	case SH101:
 		set("saw", 0, 1)
 		set("pulse", 0, 1)

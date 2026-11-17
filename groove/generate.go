@@ -1,14 +1,19 @@
 package groove
 
-import "math/rand/v2"
+import (
+	"math/rand/v2"
+	"slices"
+)
 
 // Actions lists a track's generators; the first is always FitAction.
 func Actions(kind Kind) []string { return append([]string{FitAction}, kindActions(kind)...) }
 
 func kindActions(kind Kind) []string {
 	switch kind {
-	case Dual, SH101:
-		return []string{"Bassline", "Sparse", "Busy", "Mutate", "Variation", "Random", "Clear"}
+	case Dual:
+		return []string{"Bassline", "Lead", "Stabs", "Sparse", "Busy", "Mutate", "Variation", "Random", "Clear"}
+	case SH101:
+		return []string{"Bassline", "Arp", "Sequence", "Sparse", "Busy", "Mutate", "Variation", "Random", "Clear"}
 	case Sampler:
 		return []string{"4 Floor", "8ths", "Offbeat", "Sparse", "Busy", "Mutate", "Variation", "Random", "Clear"}
 	case Kick:
@@ -32,7 +37,8 @@ func kindActions(kind Kind) []string {
 func melodic(kind Kind, action string) bool {
 	switch kind {
 	case Acid, Dual, SH101:
-		return action == FitAction || action == "Acid" || action == "Bassline" || action == "Sparse" || action == "Busy" || action == "Mutate" || action == "Variation" || action == "Random"
+		return action == FitAction || action == "Acid" || action == "Bassline" || action == "Sparse" || action == "Busy" || action == "Mutate" || action == "Variation" || action == "Random" ||
+			slices.Contains(monoIdioms, action)
 	case Tom:
 		return action == "Bassline"
 	}
@@ -116,6 +122,14 @@ func generate(t *Track, slot int, action string, key *Key, r *rand.Rand) {
 			// Tom notes transpose from its C2 root; keep them within C2 to C3.
 			root = 36 + key.Root
 		}
+	}
+	if t.Kind.synthPart() && slices.Contains(monoIdioms, action) {
+		k := Key{Scale: PhraseMinor}
+		if key != nil {
+			k = *key
+		}
+		writeIdiom(pattern.Steps, action, k, r)
+		return
 	}
 	if options, ok := phraseAction(t.Kind, action, r); ok && key != nil {
 		if bars := len(pattern.Steps) / 16; len(pattern.Steps)%16 == 0 && (bars == 1 || bars == 2 || bars == 4) {

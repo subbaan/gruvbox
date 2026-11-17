@@ -40,6 +40,7 @@ var roleLabels = map[string]string{
 	"lead": "lead line", "bass": "bass line", "second": "counter line",
 	"counter": "counter line", "upper": "line above the bass",
 	"pad": "pad", "stab": "stabs", "layer": "layer under the lead",
+	"melody": "held melody", "arp": "arpeggio", "sequence": "sequence",
 }
 
 // grooveSteps is the loop length a part in slot should have: the longest
@@ -207,6 +208,8 @@ func chooseRole(p *Project, t *Track, slot int, style GrooveStyle, styled bool, 
 		return "bass"
 	case t.Kind == Acid:
 		return "second"
+	case styled && t.Kind == SH101 && len(style.sh101) > 0:
+		return style.sh101[r.IntN(len(style.sh101))].role
 	case styled && len(style.dual) > 0:
 		return style.dual[r.IntN(len(style.dual))].role
 	}

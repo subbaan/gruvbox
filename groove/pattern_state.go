@@ -187,7 +187,7 @@ func validateTrackControls(t Track) error {
 		}
 	}
 	if t.Kind == Dual {
-		for _, id := range []string{"osc1_wave", "osc2_wave", "slope", "legato"} {
+		for id := range synth.DualChoices {
 			if v := t.Parameters[id]; v != math.Trunc(v) {
 				return fmt.Errorf("invalid Dual synth selector %s", id)
 			}

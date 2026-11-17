@@ -393,3 +393,46 @@ minimum phrase `Movement` if lines feel static.
     notes and level and swaps in `sh101Parts[role]`'s sound.
     `chooseLayout` puts an SH-101 in the Dual's place 40% of the time.
   - **Cost:** about 59 µs per 256-sample block, like the Dual.
+- **2026-11-17 (alpha.62):** Dual and SH-101 split. User: "aren't they
+  basically the same thing". They overlapped in role (and the SH-101 took
+  the Dual's recipes' notes), so each now does what the other can't.
+  - **Dual voice** (`synth/dual.go`), all appended with off defaults (a hash
+    of the default render was compared before and after: bit-identical):
+    `osc1_level`, `sync` (osc 2 resets on osc 1's accumulator wrap; the jump
+    gets a polyBLEP, half on this sample and half carried to the next less
+    the wrap correction `dualOscillator` applies itself, `dualWrapStep`;
+    folded energy about ⅕ of naive, `TestDualSyncBLEPReducesAliasing`),
+    `osc2_env` ("Osc 2 sweep": filter envelope × 24 semitones on osc 2),
+    `fm` (phase modulation of osc 1 and the unison copies by osc 2,
+    fm²·1.5 cycles), `ring` (o1·o2, counted in the level scale) and
+    `unison` (oscillators 3 and 4: osc 1 ±25 cents·amount, power-normalised).
+    `synth.DualChoices` names its switches (used by `ParameterChoices`,
+    validation and the panel); `synth.DualLFOTargets` gained Oscillator 2
+    pitch, FM amount, Ring mod (indices 9–11). Cost ~64 µs per block with
+    everything on.
+  - **Sounds:** nine Dual sounds (109 in all); `TestDualBankIsBalanced`.
+    `RandomiseSound(Dual)` turns on sync (.15), FM (.12) or ring (.08) and
+    unison (.25).
+  - **Part writing** (`groove/mono_parts.go`, `writeIdiom`): `harmony` (key,
+    bass root, per-bar chord roots from `progressions`, snapped to the
+    scale; triads built from the scale). SH-101 **Arp** (chord up/down/
+    up-down/shuffled, 1–2 octaves, 16ths or 8ths, a fixed rest/accent mask
+    per bar) and **Sequence** (3–8 note figure, cycles over the bar line,
+    moved to each bar's chord root, slides with the gate held). Dual
+    **Lead** (1–3 held notes a bar, stepwise with leaps, slides, bar starts
+    land on the chord) and **Stabs** (`stabRhythms`, chord root, short).
+  - **Roles:** `GrooveStyle.sh101` (`sh101Arp`, `sh101Sequence`; bass is
+    `sh101Bass`: Sequence or Bassline). `sh101Recipe` keeps the old
+    Dual-derived path for SH-101s saved with a Dual role. Dual gained
+    `dualMelody` (role "melody", held, sync/unison/FM patches); `dualStab`
+    plays Stabs with interval patches. Neither arp, sequence nor melody
+    answers the bass. Measured over styles: SH-101 parts on 75% of steps at
+    1 step a note, Dual 27% at 2.6 (`TestDualAndSH101PlayDifferentParts`).
+    Levels against the 303 lead (solo RMS): arp −9, sequence −10, melody −3,
+    stab −12 dB (short notes measure low).
+  - **Fix:** `jitterSoundBy` moved envelope times in seconds by a share of
+    their range (SH-101 decay ±0.6 s at .06), so bank sounds in grooves
+    often got 2 ms decays. `TimeParameter(kind, id)` controls now vary by
+    ratio, exp(±4·share). Same number of random draws, so seeds hold.
+  - Listening: `GRUVBOX_MONO_WAVS=<dir> go test ./groove -run
+    TestWriteMonoPartSamples`.

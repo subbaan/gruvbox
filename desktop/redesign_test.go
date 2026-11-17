@@ -277,6 +277,12 @@ func TestScreenshots(t *testing.T) {
 	u.refresh()
 	shot("sh101")
 	u.undo()
+	u.addTrackOf(groove.Dual)
+	u.dualAccordion.Close(0)
+	u.dualAccordion.Open(2)
+	u.refresh()
+	shot("dual")
+	u.undo()
 	u.inspectorKey = ""
 	u.refresh()
 	saved := startupProject
