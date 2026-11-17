@@ -188,7 +188,7 @@ func drumRMS(t *testing.T, kind Kind, preset SoundPreset) float64 {
 
 func TestDrumBanksAreBalanced(t *testing.T) {
 	for _, kind := range Kinds {
-		if kind == Acid || kind == Dual || kind == Sampler {
+		if kind.synthPart() || kind == Sampler {
 			continue
 		}
 		bank := FactorySounds(kind)
@@ -207,6 +207,19 @@ func TestDrumBanksAreBalanced(t *testing.T) {
 			if db < -14 || db > 9 {
 				t.Errorf("%s %s is %+.1f dB against the default", kind, preset.Name, db)
 			}
+		}
+	}
+}
+
+// The SH-101 bank stays near the default's level, played one note a beat.
+// Short plucks measure low that way, so the floor is lower than for drums.
+func TestSH101BankIsBalanced(t *testing.T) {
+	plain := drumRMS(t, SH101, CaptureSound(NewTrack(SH101, 0), "Plain"))
+	for _, preset := range FactorySounds(SH101) {
+		db := 20 * math.Log10(drumRMS(t, SH101, preset)/plain)
+		t.Logf("%-16s %+5.1f dB", preset.Name, db)
+		if db < -18 || db > 9 {
+			t.Errorf("SH-101 %s is %+.1f dB against the default", preset.Name, db)
 		}
 	}
 }

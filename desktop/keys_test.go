@@ -135,9 +135,47 @@ func TestRandomGrooveMenu(t *testing.T) {
 	if u.session.LastAction == "" || !strings.Contains(u.status.Text, "groove ·") {
 		t.Fatalf("status does not describe the groove: %q", u.status.Text)
 	}
-	items := u.templateItems()
-	if items[0].Label != "Random groove" {
-		t.Fatal("New menu does not offer Random groove first")
+	item := u.newGrooveItem()
+	if item.Label != "New groove" || item.Shortcut.(*desktop.CustomShortcut).KeyName != fyne.KeyN {
+		t.Fatal("≡ menu does not offer New groove on Ctrl+N")
+	}
+	for _, item := range u.templateItems() {
+		if item.Label == "Random groove" {
+			t.Fatal("template submenu still repeats Random groove")
+		}
+	}
+}
+
+// Ctrl+N starts again as at launch: a fresh groove, stopped, Jam off, and
+// unsaved work is confirmed first.
+func TestCtrlNStartsAFreshGroove(t *testing.T) {
+	u, w := redesignUI(t)
+	saved := startupProject
+	startupProject = randomStartup
+	defer func() { startupProject = saved }()
+	u.path = "old.gruvbox3"
+	u.selectedStep = 5
+	u.setJam(true)
+	u.player.SetPlaying(true)
+	u.session.MarkSaved()
+	before := u.session.Project.Clone()
+	shortcut(t, w, &desktop.CustomShortcut{KeyName: fyne.KeyN, Modifier: fyne.KeyModifierControl})
+	if reflect.DeepEqual(before, u.session.Project) || u.path != "" || u.selectedStep != 0 || u.jam.on || u.player.Playing() || u.session.Dirty() {
+		t.Fatal("Ctrl+N did not reset to a fresh groove")
+	}
+	u.edit("Change", func(p *groove.Project) error { p.BPM++; return nil })
+	edited := u.session.Project.Clone()
+	shortcut(t, w, &desktop.CustomShortcut{KeyName: fyne.KeyN, Modifier: fyne.KeyModifierControl})
+	if u.modals["Unsaved groove"] == nil || !reflect.DeepEqual(edited, u.session.Project) {
+		t.Fatal("Ctrl+N discarded unsaved work without asking")
+	}
+	shortcut(t, w, &desktop.CustomShortcut{KeyName: fyne.KeyN, Modifier: fyne.KeyModifierControl})
+	if len(u.modalOrder) != 1 {
+		t.Fatal("Ctrl+N stacked a second confirmation")
+	}
+	u.modals["Unsaved groove"].finish(true)
+	if reflect.DeepEqual(edited, u.session.Project) || u.session.Dirty() {
+		t.Fatal("confirming did not start a fresh groove")
 	}
 }
 
@@ -309,4 +347,48 @@ func TestGrooveHistoryRestoresAndKeepsFavourites(t *testing.T) {
 		t.Fatal("unstar failed")
 	}
 	_ = w
+}
+
+// Adding a Dual to a styled groove and pressing G writes a part that fits:
+// the groove's length, a role and a status line naming the style; one undo
+// takes the part back off.
+func TestAddDualThenGFitsTheGroove(t *testing.T) {
+	u, _ := redesignUI(t)
+	saved := startupProject
+	startupProject = randomStartup
+	defer func() { startupProject = saved }()
+	u.startRandomGroove()
+	p := &u.session.Project
+	steps := 0
+	for _, tr := range p.Tracks {
+		steps = max(steps, len(tr.Patterns[p.Pattern].Steps))
+	}
+	u.addTrackOf(groove.Dual)
+	d := u.selectedTrack()
+	if d == nil || d.Kind != groove.Dual || d.Role == "" || len(d.Patterns[p.Pattern].Steps) != steps {
+		t.Fatalf("added Dual not set up for the %s groove", p.Style)
+	}
+	if !strings.Contains(u.status.Text, p.Style) {
+		t.Fatalf("add status does not name the style: %q", u.status.Text)
+	}
+	if groove.Actions(groove.Dual)[0] != groove.FitAction {
+		t.Fatal("G is not Fit groove")
+	}
+	u.key(fyne.KeyG)
+	d = u.selectedTrack()
+	notes := 0
+	for _, s := range d.Patterns[p.Pattern].Steps {
+		if s.Active {
+			notes++
+		}
+	}
+	if notes == 0 || len(d.Patterns[p.Pattern].Steps) != steps || !strings.Contains(u.status.Text, groove.FitAction+" · ") {
+		t.Fatalf("G wrote %d notes in %d steps (groove %d): %q", notes, len(d.Patterns[p.Pattern].Steps), steps, u.status.Text)
+	}
+	u.undo()
+	for _, s := range u.selectedTrack().Patterns[p.Pattern].Steps {
+		if s.Active {
+			t.Fatal("undo did not take the fitted part off")
+		}
+	}
 }

@@ -95,7 +95,7 @@ func phraseRandom(seed, stream uint64) *rand.Rand {
 // half. Variation zero repeats it exactly. Stored locks remain at their positions.
 func PhrasePattern(source Pattern, kind Kind, options PhraseOptions) (Pattern, error) {
 	if !kind.Capabilities().Notes {
-		return Pattern{}, fmt.Errorf("choose a pitched instrument: 303, Dual synth, Tom or Sampler")
+		return Pattern{}, fmt.Errorf("choose a pitched instrument: 303, Dual synth, SH-101, Tom or Sampler")
 	}
 	if options.Bars != 1 && options.Bars != 2 && options.Bars != 4 {
 		return Pattern{}, fmt.Errorf("choose 1, 2 or 4 bars")

@@ -77,7 +77,7 @@ func TestSectionTracksAndGrooveDuplication(t *testing.T) {
 	if u.session.Project.Pattern != 0 {
 		t.Fatal("duplicate undo did not restore pattern slot")
 	}
-	u.exportWAV(false)
+	u.exportWAV(false, "")
 	export := u.panels["Export WAV"]
 	if export == nil || songButton(export.Content(), "Export") == nil {
 		t.Fatal("native export controls missing")

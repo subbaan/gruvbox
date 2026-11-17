@@ -41,7 +41,7 @@ func TestDualTrackGateLocksSaveAndDiscovery(t *testing.T) {
 	// two empty steps, then the short release decays to exact silence.
 	player.Render(make([]float32, 12000*2))
 	v := player.active.tracks[0].voice
-	if v.dual == nil || v.lfos()[0] == nil || v.gateRemaining != 1 {
+	if v.mono == nil || v.lfos()[0] == nil || v.gateRemaining != 1 {
 		t.Fatal("Dual gate or modulation was not wired")
 	}
 	var block [BlockSize * 2]float32

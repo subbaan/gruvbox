@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Gruvbox is a desktop and terminal groovebox featuring TB-303 bass synthesizer emulation, analog-modeled drum synthesis, step sequencer, and per-channel effects. Current version: 3.0.0-alpha.54
+Gruvbox is a desktop and terminal groovebox featuring TB-303 bass synthesizer emulation, analog-modeled drum synthesis, step sequencer, and per-channel effects. Current version: 3.0.0-alpha.61
 
 ## Desktop UI redesign (in progress)
 
@@ -20,6 +20,12 @@ Generation, sounds, the 303 voice and effects were extended in four phases.
 **Read `SOUND_VARIETY_PLAN.md` before changing `groove/` generation,
 `synth/` or `effects/`**: it records where each piece lives, the level and
 default-compatibility rules, and possible follow-ups.
+
+## Fit groove (alpha.56)
+
+`Project.Style` and `Track.Role` let **+ Track** and **G** (`FitPart`,
+`groove/fit.go`) write parts that suit the groove. The session log at the end
+of `SOUND_VARIETY_PLAN.md` describes it. Keep both fields `omitempty`.
 
 ## Track builder work (complete, alpha.47)
 
@@ -52,7 +58,7 @@ CRITICAL: Always update the VERSION file when making code changes. The version f
 go mod tidy
 
 # Build the application
-go build -o gruvbox
+go build -trimpath -o gruvbox
 
 # Run the application
 ./gruvbox
@@ -93,6 +99,15 @@ All buffers are pre-allocated. Communication between UI thread and audio thread 
 - Decay envelope generators with exponential curves
 - Accent, slide/portamento, sub-oscillator, and dual LFOs
 - Two independent instances (bass + lead)
+
+**SH-101** (`synth/sh101.go`, alpha.58):
+- One VCO (saw, variable pulse, a sub locked to VCO wraps, noise), a ZDF
+  four-pole OTA ladder at 2× oversampling, one ADSR, an internal LFO and
+  exponential portamento
+- In `groove/` it shares the `monoVoice` slot (`voice.mono`) with the Dual
+  synth. Its switches are `synth.SH101Choices`, shown by `ParameterChoices`.
+  Its role recipes are `sh101Parts` in `groove/style.go`: the notes come from
+  the style's Dual recipe for the role, the sound is the SH-101's own
 
 **Drum Synthesis** (`synth/drums/`):
 - Analog-modeled kick, snare, and hi-hats

@@ -49,12 +49,16 @@ func (u *UI) showTrackMenu(id string, at fyne.Position) {
 	mute.Checked = t.Mute
 	solo := fyne.NewMenuItem("Solo", u.toggleSolo)
 	solo.Checked = t.Solo
+	render := fyne.NewMenuItem("Render this track to WAV", nil)
+	render.ChildMenu = fyne.NewMenu("Render this track to WAV", u.exportItemsFor(id)...)
+	render.ChildMenu.Items[1].Disabled = len(u.session.Project.Song) == 0
 	menu := fyne.NewMenu(t.Name,
 		fyne.NewMenuItem("Rename…", func() { u.renameTrack(id, at) }),
 		fyne.NewMenuItem("Duplicate", u.duplicateTrack),
 		colours,
 		fyne.NewMenuItemSeparator(), up, down,
 		fyne.NewMenuItemSeparator(), hold, mute, solo,
+		fyne.NewMenuItemSeparator(), render,
 		fyne.NewMenuItemSeparator(), fyne.NewMenuItem("Remove track", u.removeTrack),
 	)
 	widget.NewPopUpMenu(menu, u.window.Canvas()).ShowAtPosition(at)

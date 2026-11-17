@@ -122,6 +122,7 @@ func (u *UI) restoreGroove(s groove.GrooveSnapshot) {
 		_, err := groove.RestoreGroove(p, s)
 		return err
 	})
+	u.regenerated = true
 }
 
 // shortGrooveLabel drops "Randomise all · " and shortens the part rerolls

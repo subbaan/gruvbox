@@ -329,6 +329,10 @@ func jamNudge(p *Project, r *rand.Rand, state *JamState) string {
 	if t.Kind == Dual {
 		ids = []string{"cutoff"}
 	}
+	if t.Kind == SH101 {
+		// Its decay is in seconds, so only the shared 0–1 controls.
+		ids = []string{"cutoff", "cutoff", "resonance"}
+	}
 	id := ids[r.IntN(len(ids))]
 	if _, ok := t.Parameters[id]; !ok {
 		id = "cutoff"
@@ -515,9 +519,15 @@ func jamRephrase(p *Project, r *rand.Rand, state *JamState) string {
 		}
 	}
 	action := "Acid"
+	hold := false
 	switch {
-	case t.Kind == Dual:
-		action = "Bassline"
+	case t.Kind == Dual || t.Kind == SH101:
+		// A Dual or SH-101 rephrases in its role: a pad stays sparse and held.
+		recipe := synthRecipe(p, t, slot, r)
+		action, hold = pickAction(recipe, r), recipe.hold
+		if action == "" || action == "Layer" {
+			action = "Bassline"
+		}
 	case density*4 < n:
 		action = "Sparse"
 	case density*4 > 3*n:
@@ -527,6 +537,12 @@ func jamRephrase(p *Project, r *rand.Rand, state *JamState) string {
 	for attempt := 0; attempt < 4; attempt++ {
 		fresh := Project{Tracks: []Track{*t}}.Clone().Tracks[0]
 		generate(&fresh, slot, action, p.Key, r)
+		if hold {
+			holdNotes(fresh.Patterns[slot].Steps)
+		}
+		if answers(fresh.Role) {
+			answerBass(p, &fresh, slot, r)
+		}
 		shift := registerShift(pattern.Steps, fresh.Patterns[slot].Steps)
 		steps := append([]Step(nil), pattern.Steps...)
 		changed := false
@@ -566,7 +582,7 @@ func registerShift(old, fresh []Step) int {
 }
 
 // jamBringIn starts a silent track playing: a drum gets one of its families,
-// a silent synth a sparse line in the key an octave up. It happens while the
+// a silent synth the part Fit groove would write for its role. It happens while the
 // jam builds (any time when Wild). A crash only comes in on loops of two bars
 // or more, as it hits once per loop.
 func jamBringIn(p *Project, r *rand.Rand, state *JamState) string {
@@ -582,11 +598,9 @@ func jamBringIn(p *Project, r *rand.Rand, state *JamState) string {
 		return ""
 	}
 	if t.Kind.synthPart() {
-		generate(t, slot, map[bool]string{true: "Bassline", false: "Sparse"}[t.Kind == Dual], p.Key, r)
-		for i := range t.Patterns[slot].Steps {
-			s := &t.Patterns[slot].Steps[i]
-			s.Note = min(127, s.Note+12)
-		}
+		// Its own part (Fit groove's), so a pad comes in as a pad and a
+		// second line above the bass.
+		fitSynth(p, t, slot, r)
 		return "brought in " + t.Name
 	}
 	families := DrumFamilies(t.Kind)

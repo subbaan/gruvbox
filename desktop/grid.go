@@ -311,8 +311,19 @@ func (r *gridRenderer) draw(size fyne.Size) {
 	r.column.Hide()
 	objects = append(objects, r.column)
 	text("TRACK", 12, 9, colour(roles.Secondary), 11)
+	// The roll marks quarter notes: brighter step numbers, lit cells and a
+	// line before each beat, a stronger one before each bar.
+	beat := 0
+	if t := u.selectedTrack(); g.roll && t != nil {
+		beat = stepsPerBeat(t.Patterns[u.session.Project.Pattern].Resolution)
+	}
+	onBeat := func(index int) bool { return beat > 0 && index%beat == 0 }
 	for n := 0; n < 16; n++ {
-		text(fmt.Sprintf("%02d", u.page*16+n+1), left+float32(n)*width+6, 9, colour(roles.Secondary), 11)
+		label := colour(roles.Secondary)
+		if onBeat(u.page*16 + n) {
+			label = colour(roles.Text)
+		}
+		text(fmt.Sprintf("%02d", u.page*16+n+1), left+float32(n)*width+6, 9, label, 11)
 	}
 	tracks := u.session.Project.Tracks
 	if g.roll && (u.selectedTrack() == nil || !u.selectedTrack().Kind.Capabilities().Notes) {
@@ -400,10 +411,20 @@ func (r *gridRenderer) draw(size fyne.Size) {
 			if g.roll {
 				// Notes are drawn by drawNote below; this is the empty cell.
 				empty := roles.InactiveStep
+				if onBeat(index) {
+					empty = mixHex(roles.InactiveStep, roles.Text, .12)
+				}
 				if blackKey(g.noteTop - row) {
-					empty = mixHex(roles.InactiveStep, roles.Background, .55)
+					empty = mixHex(empty, roles.Background, .55)
 				}
 				box(x, y+inset, width-6, cellHeight, empty, "")
+				if onBeat(index) {
+					line, lineWidth := roles.Border, float32(1)
+					if index%(beat*4) == 0 {
+						line, lineWidth = roles.Secondary, 2
+					}
+					box(x-3-lineWidth/2, y, lineWidth, rh, line, "")
+				}
 				continue
 			}
 			box(x, y+inset, width-6, cellHeight, fill, border)
@@ -518,6 +539,11 @@ func (r *gridRenderer) draw(size fyne.Size) {
 // velocity drops, keeping quiet hits visible.
 func velocityShade(fill, empty string, velocity float64) string {
 	return mixHex(fill, empty, (1-min(1, max(0, velocity)))*.6)
+}
+
+// stepsPerBeat is how many steps of a pattern make a quarter note.
+func stepsPerBeat(resolution int) int {
+	return max(1, resolution/4)
 }
 
 func blackKey(note int) bool {

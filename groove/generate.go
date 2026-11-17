@@ -2,9 +2,12 @@ package groove
 
 import "math/rand/v2"
 
-func Actions(kind Kind) []string {
+// Actions lists a track's generators; the first is always FitAction.
+func Actions(kind Kind) []string { return append([]string{FitAction}, kindActions(kind)...) }
+
+func kindActions(kind Kind) []string {
 	switch kind {
-	case Dual:
+	case Dual, SH101:
 		return []string{"Bassline", "Sparse", "Busy", "Mutate", "Variation", "Random", "Clear"}
 	case Sampler:
 		return []string{"4 Floor", "8ths", "Offbeat", "Sparse", "Busy", "Mutate", "Variation", "Random", "Clear"}
@@ -28,8 +31,8 @@ func Actions(kind Kind) []string {
 // melodic reports whether action writes a phrase (and so needs a key).
 func melodic(kind Kind, action string) bool {
 	switch kind {
-	case Acid, Dual:
-		return action == "Acid" || action == "Bassline" || action == "Sparse" || action == "Busy" || action == "Mutate" || action == "Variation" || action == "Random"
+	case Acid, Dual, SH101:
+		return action == FitAction || action == "Acid" || action == "Bassline" || action == "Sparse" || action == "Busy" || action == "Mutate" || action == "Variation" || action == "Random"
 	case Tom:
 		return action == "Bassline"
 	}
@@ -40,6 +43,7 @@ func newRand() *rand.Rand { return rand.New(rand.NewPCG(rand.Uint64(), rand.Uint
 
 // Generate changes musical content only; callers wrap it in a Session command.
 // Melodic parts use a random key; use GenerateIn so parts share the project's.
+// Without a project, Fit groove is the track's usual first pattern.
 func Generate(t *Track, slot int, action string) {
 	r := newRand()
 	var key *Key
@@ -52,8 +56,13 @@ func Generate(t *Track, slot int, action string) {
 
 // GenerateIn is Generate with the project's key. The first melodic
 // generation in a project without a key picks one and stores it.
+// Fit groove is FitPart.
 func GenerateIn(p *Project, t *Track, slot int, action string) {
 	r := newRand()
+	if action == FitAction {
+		FitPart(p, t, slot, r)
+		return
+	}
 	if melodic(t.Kind, action) && p.Key == nil {
 		k := RandomKey(r, nil)
 		p.Key = &k
@@ -89,6 +98,9 @@ func phraseAction(kind Kind, action string, r *rand.Rand) (PhraseOptions, bool) 
 }
 
 func generate(t *Track, slot int, action string, key *Key, r *rand.Rand) {
+	if action == FitAction {
+		action = kindActions(t.Kind)[0]
+	}
 	pattern := &t.Patterns[slot]
 	if action == "Variation" {
 		next := NextInBank(slot)
@@ -130,7 +142,7 @@ func generate(t *Track, slot int, action string, key *Key, r *rand.Rand) {
 		if action == "Mutate" {
 			if r.Float64() < .18 {
 				pattern.Steps[i].Active = !pattern.Steps[i].Active
-				if t.Kind == Acid || t.Kind == Dual {
+				if t.Kind.synthPart() {
 					pattern.Steps[i].Note = root + scale[r.IntN(len(scale))]
 				}
 			}
@@ -180,7 +192,7 @@ func generate(t *Track, slot int, action string, key *Key, r *rand.Rand) {
 			multiplier := []float64{1.5, 1.25, 1, .8}[i%4]
 			step.Locks = map[string]float64{"pitch": max(40, min(300, t.Parameters["pitch"]*multiplier))}
 		}
-		if t.Kind == Acid || t.Kind == Dual || (t.Kind == Tom && action == "Bassline") {
+		if t.Kind.synthPart() || (t.Kind == Tom && action == "Bassline") {
 			step.Note = root + scale[r.IntN(len(scale))]
 			step.Accent = step.Active && r.Float64() < .3
 			step.Slide = t.Kind.Capabilities().Slide && step.Active && r.Float64() < .2

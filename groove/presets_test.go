@@ -206,8 +206,8 @@ func TestFactorySoundsRenderAndAreIndependent(t *testing.T) {
 			}
 		}
 	}
-	if count != 89 {
-		t.Fatalf("expected 89 starting sounds, got %d", count)
+	if count != 100 {
+		t.Fatalf("expected 100 starting sounds, got %d", count)
 	}
 }
 

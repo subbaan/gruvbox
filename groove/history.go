@@ -21,6 +21,7 @@ type GrooveSnapshot struct {
 	BPM   float64        `json:"bpm"`
 	Swing float64        `json:"swing"`
 	Key   *Key           `json:"key,omitempty"`
+	Style string         `json:"style,omitempty"`
 	Parts []SnapshotPart `json:"parts"`
 }
 
@@ -29,6 +30,7 @@ type GrooveSnapshot struct {
 type SnapshotPart struct {
 	Kind            Kind               `json:"kind"`
 	Name            string             `json:"name"`
+	Role            string             `json:"role,omitempty"`
 	Pattern         Pattern            `json:"pattern"`
 	Parameters      map[string]float64 `json:"parameters"`
 	LFOs            [2]LFO             `json:"lfos"`
@@ -38,7 +40,7 @@ type SnapshotPart struct {
 
 // CaptureGroove snapshots the selected pattern.
 func CaptureGroove(p Project, label string) GrooveSnapshot {
-	s := GrooveSnapshot{ID: newID(), Label: label, Saved: time.Now(), BPM: p.BPM, Swing: p.Swing}
+	s := GrooveSnapshot{ID: newID(), Label: label, Saved: time.Now(), BPM: p.BPM, Swing: p.Swing, Style: p.Style}
 	if p.Key != nil {
 		key := *p.Key
 		s.Key = &key
@@ -48,7 +50,7 @@ func CaptureGroove(p Project, label string) GrooveSnapshot {
 		sound := withTrackState(t, t.Patterns[p.Pattern].State)
 		pattern := clonePattern(t.Patterns[p.Pattern])
 		pattern.State = nil
-		s.Parts = append(s.Parts, SnapshotPart{Kind: t.Kind, Name: t.Name, Pattern: pattern,
+		s.Parts = append(s.Parts, SnapshotPart{Kind: t.Kind, Name: t.Name, Role: t.Role, Pattern: pattern,
 			Parameters: cloneMap(sound.Parameters), LFOs: sound.LFOs, Effects: cloneEffects(sound.Effects), EffectsBypassed: sound.EffectsBypassed})
 	}
 	return s
@@ -77,6 +79,7 @@ func RestoreGroove(p *Project, s GrooveSnapshot) (matched int, err error) {
 		key := *s.Key
 		p.Key = &key
 	}
+	p.Style = s.Style
 	used := map[int]bool{}
 	for _, part := range s.Parts {
 		for i := range p.Tracks {
@@ -92,6 +95,7 @@ func RestoreGroove(p *Project, s GrooveSnapshot) (matched int, err error) {
 			pattern := clonePattern(part.Pattern)
 			pattern.State = nil
 			t.Patterns[slot] = pattern
+			t.Role = part.Role
 			if t.Kind != Sampler {
 				t.Parameters = cloneMap(part.Parameters)
 				fillParameterDefaults(t.Kind, t.Parameters)

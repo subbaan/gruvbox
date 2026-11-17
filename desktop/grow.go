@@ -92,6 +92,7 @@ func (u *UI) applyGrow(full bool) {
 		_, err := groove.GrowTrack(p, rand.New(rand.NewPCG(seed1, seed2)), full)
 		return err
 	})
+	u.regenerated = true
 	u.player.SetSongMode(true)
 	u.selectedSection = ""
 	if len(u.session.Project.Song) > 0 {

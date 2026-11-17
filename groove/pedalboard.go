@@ -94,7 +94,7 @@ func PedalboardNamed(name string) (Pedalboard, bool) {
 
 // suitsTrack reports whether a board is meant for this kind of track.
 func (b Pedalboard) suitsTrack(kind Kind) bool {
-	drums := kind != Acid && kind != Dual && kind != Sampler
+	drums := !kind.synthPart() && kind != Sampler
 	return b.Drums == drums || kind == Sampler
 }
 

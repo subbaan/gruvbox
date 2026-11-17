@@ -85,7 +85,7 @@ func partOf(k Kind) growPart {
 		return partTom
 	case Crash:
 		return partCrash
-	case Acid, Dual:
+	case Acid, Dual, SH101:
 		return partSynth
 	}
 	return partSampler

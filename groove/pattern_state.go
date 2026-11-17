@@ -2,6 +2,7 @@ package groove
 
 import (
 	"fmt"
+	"github.com/subbaan/gruvbox/synth"
 	"math"
 	"reflect"
 )
@@ -189,6 +190,13 @@ func validateTrackControls(t Track) error {
 		for _, id := range []string{"osc1_wave", "osc2_wave", "slope", "legato"} {
 			if v := t.Parameters[id]; v != math.Trunc(v) {
 				return fmt.Errorf("invalid Dual synth selector %s", id)
+			}
+		}
+	}
+	if t.Kind == SH101 {
+		for id := range synth.SH101Choices {
+			if v := t.Parameters[id]; v != math.Trunc(v) {
+				return fmt.Errorf("invalid SH-101 switch %s", id)
 			}
 		}
 	}

@@ -321,3 +321,75 @@ minimum phrase `Movement` if lines feel static.
 - **2026-11-06 (alpha.39):** styles pick fitting drum bank sounds.
 - **2026-11-06 (alpha.40):** Randomise all (in-place fresh groove).
 - **2026-11-06 (alpha.41):** grooves in one, two or four bars.
+- **2026-11-16 (alpha.56):** Fit groove (`groove/fit.go`). User: a Dual
+  added to a Dub groove and given G "doesn't sound right": G wrote a busy
+  "Bassline" in the bass register, over 1 bar against a 2–4 bar groove, at
+  level .7, dry, with the default patch.
+  - `Project.Style` (set by `newGroove` and `RandomiseGrooveParts`, kept in
+    groove history) and `Track.Role` (synths: lead, second, bass, pad,
+    counter, stab, layer, upper; `partRecipe.role` names the Dual recipes).
+    Both are `omitempty`, so the format stays version 2.
+  - `AddTrack`: groove length per slot (`grooveSteps`), and in a styled
+    groove the role (`chooseRole`: bass/lead when no other synth holds the
+    bass, else a part above it) and the recipe's patch/sound/FX/level. Empty
+    patterns.
+  - `FitPart` (`FitAction`, now `Actions(kind)[0]`, so G): length (kept if
+    it is already a whole number of the groove's loops), notes via
+    `roleRecipe` (style lead/second/dual parts, a Dual "bass" from
+    `dualLayer` playing the lead's actions; unstyled: Bassline/Acid or Sparse
+    +12). `liftAboveBass` puts every non-bass line's median an octave over the
+    bass's (`bassLine`: role lead/bass, or for role-less tracks the lower
+    quartile under BassRoot+12; muted tracks count, for Jam). Also used by
+    `writeRecipeNotes`, so new grooves get it. Drums: a family from the style
+    recipe, else `kindActions(kind)[0]`.
+  - Jam: `jamBringIn` uses `fitSynth`; `jamRephrase` on a Dual uses its
+    role's action and holds pad notes.
+  - Measured on Dub renders: the old add+G put 10–15 dB more into 40–200 Hz;
+    a fitted part solos 6–10 dB under the lead, like the style's own parts.
+- **2026-11-16 (alpha.57):** answering the bass. `placeAboveBass` (fit.go)
+  runs for every synth part that is not the lead/bass, from `fitSynth` and
+  `writeRecipeNotes`: `answerBass` first, for the roles `answers()` lists
+  (second, counter, stab, upper), then `liftAboveBass` (answering moves the
+  median, so the lift has to come second). `answerBass` takes the bass's
+  onsets over the lines' common loop (`bassOnsets`, handles different
+  lengths), keeps a collision with p .1 (.4 on a bar's downbeat), otherwise
+  moves the note to +1, −1, +2 or −2 if that step is free and off the bass,
+  else drops it, never dropping more than half the notes. Pads and layers
+  are not answered.
+  - `RandomiseGrooveParts` clears every rerolled slot first and places upper
+    parts written before the bass again at the end (`early`), so none answers
+    a stale line. `jamRephrase` answers on the fresh line before splicing.
+  - It draws random numbers, so seeded draws shift: the randomise test moved
+    from seed (4,5) (now a sparse Minimal groove) to (6,5).
+  - Measured: unanswered counter lines start on 75–100% of the bass's
+    onsets (the phrase engine favours the same strong steps); answered 0–33%.
+    Over all styles `TestUpperPartsAnswerTheBass` gives 24% against a bass
+    density of 57%.
+- **2026-11-16 (alpha.58):** SH-101 track (`Kind SH101 = "sh-101"`).
+  - **Voice** (`synth/sh101.go`): one VCO with saw, variable pulse and noise.
+    The sub is derived from VCO wrap counts (`subLevel`), so it is
+    phase-locked; its edges get polyBLEP at the VCO wraps. Pulse width:
+    `.5 − .45·depth`, where depth is pw (Manual), pw·(LFO+1)/2 or pw·env.
+  - **Filter:** a ZDF four-pole ladder. The feedback is solved linearly, the
+    input saturates with tanh, then four TPT stages run. k = 4.15·res, so it
+    self-oscillates near full resonance; the output gets (1 + .22k) of bass
+    back. Cutoff is 16 Hz·2^(10.3c); the filter runs at 2× rate.
+  - **Envelope:** one ADSR. The attack charges towards 1.3 (RC overshoot);
+    decay and release are exponential (−4.6 over the time). Trigger modes:
+    Gate (no retrigger on a legato slide), Gate + trigger, LFO (the envelope
+    gate follows the LFO's first half-cycle while a note is held).
+  - **Elsewhere in the voice:** VCA by envelope or by gate (smoothed). The
+    internal LFO runs 0.1–29 Hz with triangle, square, S&H and smoothed
+    noise. Portamento is exponential (τ = time/3), Off/On/Auto; Auto glides
+    only legato slides.
+  - **Groove side:** `monoVoice` replaces `voice.dual` (Dual and SH-101).
+    `synthPart()` includes SH101, so Capabilities, Fit, roles, Jam and
+    pedalboards treat it as a synth. LFO targets are `SH101LFOTargets`.
+    Randomise sound keeps tune, range, VCA mode, sustain and release.
+    Jam nudges only cutoff and resonance, because its decay is in seconds.
+  - **Sounds:** 11 factory sounds (the total is now 100).
+    `TestSH101BankIsBalanced` keeps them within −18…+9 dB of the default.
+  - **In grooves:** `sh101Recipe(role)` takes the style's Dual recipe's
+    notes and level and swaps in `sh101Parts[role]`'s sound.
+    `chooseLayout` puts an SH-101 in the Dual's place 40% of the time.
+  - **Cost:** about 59 µs per 256-sample block, like the Dual.

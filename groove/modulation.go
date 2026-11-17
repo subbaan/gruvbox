@@ -7,8 +7,8 @@ import (
 )
 
 func (v *voice) lfos() [2]*dsp.LFO {
-	if v.dual != nil {
-		return v.dual.LFOs()
+	if v.mono != nil {
+		return v.mono.LFOs()
 	}
 	if v.acid != nil {
 		return [2]*dsp.LFO{v.acid.GetLFO1(), v.acid.GetLFO2()}
@@ -83,8 +83,8 @@ func (v *voice) modulation(t Track, bpm float64, resolution int) {
 			continue
 		}
 		configureLFO(lfo, t.LFOs[i], bpm, resolution)
-		if v.dual != nil {
-			v.dual.SetModulation(i, t.LFOs[i].Target, t.LFOs[i].Enabled, t.LFOs[i].Depth)
+		if v.mono != nil {
+			v.mono.SetModulation(i, t.LFOs[i].Target, t.LFOs[i].Enabled, t.LFOs[i].Depth)
 		}
 	}
 }

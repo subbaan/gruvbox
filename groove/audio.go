@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ebitengine/oto/v3"
+	"github.com/subbaan/gruvbox/dsp"
 	"github.com/subbaan/gruvbox/synth"
 	"github.com/subbaan/gruvbox/synth/drums"
 )
@@ -16,13 +17,25 @@ const BlockSize = 256
 const SourceBufferFrames = SampleRate / 10 // 100 ms: cover device periods and scheduler jitter
 const positionHistorySize = 256
 
+// monoVoice is a mono synth voice driven by notes: the Dual synth and the
+// SH-101. Every method is real-time safe.
+type monoVoice interface {
+	SetParameter(id string, value float64)
+	NoteOn(note int, accent, slide bool, velocity float64)
+	NoteOff()
+	Reset()
+	Process(output []float32)
+	LFOs() [2]*dsp.LFO
+	SetModulation(index, target int, enabled bool, depth float64)
+}
+
 // voice is owned exclusively by Render. Control code may retain its pointer,
 // but only reads the published atomic playback position.
 type voice struct {
 	gateRemaining    int
 	kind             Kind
 	acid             *synth.TB303
-	dual             *synth.DualSynth
+	mono             monoVoice // Dual synth or SH-101
 	drum             drums.DrumVoice
 	buffer           [1]float32
 	phase            float64
@@ -127,7 +140,9 @@ func (p *Player) Publish(project Project) {
 			case Acid:
 				v.acid = synth.NewTB303(SampleRate, BlockSize)
 			case Dual:
-				v.dual = synth.NewDualSynth(SampleRate)
+				v.mono = synth.NewDualSynth(SampleRate)
+			case SH101:
+				v.mono = synth.NewSH101(SampleRate)
 			case Kick:
 				v.drum = drums.NewKickDrum(SampleRate)
 			case Snare:
@@ -253,16 +268,16 @@ func (v *voice) reset() {
 	if v.acid != nil {
 		v.acid.Reset()
 	}
-	if v.dual != nil {
-		v.dual.Reset()
+	if v.mono != nil {
+		v.mono.Reset()
 	}
 	if v.drum != nil {
 		v.drum.Reset()
 	}
 }
 func (v *voice) parameter(id string, value float64) {
-	if v.dual != nil {
-		v.dual.SetParameter(id, value)
+	if v.mono != nil {
+		v.mono.SetParameter(id, value)
 		return
 	}
 	if v.kind == Sampler {
@@ -501,8 +516,8 @@ func (p *Player) renderMix(output []float32) {
 					}
 					if v.acid != nil {
 						v.acid.NoteOnFor(step.Note, step.Accent, step.Slide, acidGateSamples(v.acidGate, project.BPM, pattern, index))
-					} else if v.dual != nil {
-						v.dual.NoteOn(step.Note, step.Accent, step.Slide, step.Velocity)
+					} else if v.mono != nil {
+						v.mono.NoteOn(step.Note, step.Accent, step.Slide, step.Velocity)
 					} else if v.drum != nil {
 						velocity := v.velocity
 						if step.Accent {
@@ -517,8 +532,8 @@ func (p *Player) renderMix(output []float32) {
 					}
 				} else if v.acid != nil && v.gateRemaining <= 0 {
 					v.acid.NoteOff()
-				} else if v.dual != nil && v.gateRemaining <= 0 {
-					v.dual.NoteOff()
+				} else if v.mono != nil && v.gateRemaining <= 0 {
+					v.mono.NoteOff()
 				} else if v.kind == Sampler && t.track.Parameters["mode"] == 1 && v.gateRemaining <= 0 {
 					v.samplePlaying = false
 				}

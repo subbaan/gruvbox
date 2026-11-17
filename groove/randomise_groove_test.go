@@ -28,7 +28,9 @@ func TestRandomiseGrooveRebuildsOnlyTheSelectedPattern(t *testing.T) {
 	}
 	before := p.Clone()
 
-	info := RandomiseGroove(&p, rand.New(rand.NewPCG(4, 5)))
+	// A seed whose style leaves at most two parts silent (Minimal and Dub
+	// often silence optional drums); the draw shifts when generation changes.
+	info := RandomiseGroove(&p, rand.New(rand.NewPCG(6, 5)))
 	if err := p.Validate(); err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +70,7 @@ func TestRandomiseGrooveRebuildsOnlyTheSelectedPattern(t *testing.T) {
 
 	// The same seed and starting point give the same groove.
 	q := before.Clone()
-	if RandomiseGroove(&q, rand.New(rand.NewPCG(4, 5))) != info {
+	if RandomiseGroove(&q, rand.New(rand.NewPCG(6, 5))) != info {
 		t.Fatal("not repeatable")
 	}
 	for i := range q.Tracks {

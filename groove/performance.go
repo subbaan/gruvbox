@@ -56,7 +56,7 @@ func (p *Player) QueuePerformance(project Project, kind PerformanceKind, trackID
 		pattern := clonePattern(track.Patterns[source])
 		switch kind {
 		case DrumFill:
-			if track.Kind == Sampler || track.Kind == Acid || track.Kind == Dual || track.Kind == Crash {
+			if track.Kind == Sampler || track.Kind.synthPart() || track.Kind == Crash {
 				break
 			}
 			affected = true

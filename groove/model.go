@@ -40,6 +40,7 @@ type Kind string
 const (
 	Acid      Kind = "tb303"
 	Dual      Kind = "dual-synth"
+	SH101     Kind = "sh-101"
 	Kick      Kind = "kick"
 	Snare     Kind = "snare"
 	ClosedHat Kind = "closed-hat"
@@ -51,7 +52,7 @@ const (
 	Crash     Kind = "crash"
 )
 
-var Kinds = []Kind{Acid, Kick, Snare, ClosedHat, OpenHat, Clap, Rimshot, Tom, Crash, Dual, Sampler}
+var Kinds = []Kind{Acid, Kick, Snare, ClosedHat, OpenHat, Clap, Rimshot, Tom, Crash, Dual, SH101, Sampler}
 
 func (k Kind) Name() string {
 	switch k {
@@ -59,6 +60,8 @@ func (k Kind) Name() string {
 		return "TB-303"
 	case Dual:
 		return "Dual synth"
+	case SH101:
+		return "SH-101"
 	case Kick:
 		return "Kick"
 	case Snare:
@@ -84,7 +87,8 @@ func (k Kind) Name() string {
 type Capabilities struct{ Notes, Velocity, Accent, Slide, Locks, NoteLengths bool }
 
 func (k Kind) Capabilities() Capabilities {
-	return Capabilities{Notes: k == Acid || k == Dual || k == Sampler || k == Tom, Velocity: true, Accent: true, Slide: k == Acid || k == Dual, Locks: true, NoteLengths: k == Acid || k == Dual || k == Sampler}
+	synth := k.synthPart()
+	return Capabilities{Notes: synth || k == Sampler || k == Tom, Velocity: true, Accent: true, Slide: synth, Locks: true, NoteLengths: synth || k == Sampler}
 }
 
 type Parameter struct {
@@ -98,6 +102,12 @@ func Parameters(k Kind) []Parameter {
 	case Dual:
 		params := make([]Parameter, 0, len(synth.DualParameters()))
 		for _, p := range synth.DualParameters() {
+			params = append(params, Parameter{p.ID, p.Name, p.Min, p.Max, p.Default, p.Increment, p.Lockable})
+		}
+		return params
+	case SH101:
+		params := make([]Parameter, 0, len(synth.SH101Parameters()))
+		for _, p := range synth.SH101Parameters() {
 			params = append(params, Parameter{p.ID, p.Name, p.Min, p.Max, p.Default, p.Increment, p.Lockable})
 		}
 		return params
@@ -146,13 +156,16 @@ type Pattern struct {
 	State      *TrackState `json:"state,omitempty"`
 }
 type Track struct {
-	ID              string             `json:"id"`
-	Name            string             `json:"name"`
-	Kind            Kind               `json:"kind"`
-	Colour          int                `json:"colour_slot"`
-	Mute            bool               `json:"mute"`
-	Solo            bool               `json:"solo"`
-	Hold            bool               `json:"hold,omitempty"` // kept by Randomise all
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Kind   Kind   `json:"kind"`
+	Colour int    `json:"colour_slot"`
+	Mute   bool   `json:"mute"`
+	Solo   bool   `json:"solo"`
+	Hold   bool   `json:"hold,omitempty"` // kept by Randomise all
+	// Role is a synth's part in its groove ("lead", "second", "bass",
+	// "pad", "counter", "stab", "layer"); "" until a groove or Fit gives it one.
+	Role            string             `json:"role,omitempty"`
 	Level           float64            `json:"level"`
 	Pan             float64            `json:"pan"`
 	Parameters      map[string]float64 `json:"parameters"`
@@ -171,6 +184,9 @@ type Project struct {
 	Tracks        []Track       `json:"tracks"`
 	Song          []SongSection `json:"song,omitempty"`
 	Key           *Key          `json:"key,omitempty"` // set by the first melodic generation
+	// Style is the GrooveStyle the groove was made in ("" for templates and
+	// older files); Add track and Fit groove write new parts in it.
+	Style string `json:"style,omitempty"`
 }
 
 func newID() string {
@@ -441,6 +457,9 @@ func (s *Session) MarkSavedProject(p Project) { s.saved = p.Clone() }
 // ParameterChoices names the options of a stepped instrument control, or
 // nil if it is continuous.
 func ParameterChoices(kind Kind, id string) []string {
+	if kind == SH101 {
+		return synth.SH101Choices[id]
+	}
 	if kind != Acid {
 		return nil
 	}

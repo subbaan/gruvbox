@@ -149,5 +149,6 @@ func (u *UI) jamMove() {
 		*p = preview
 		return nil
 	})
+	u.regenerated = true
 	u.jam.state = state
 }

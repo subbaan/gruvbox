@@ -178,6 +178,9 @@ func (u *UI) chooseFile(spec fileSpec, done func(path string)) {
 	m.pop.Show()
 	canvas.Focus(d.name)
 	d.name.CursorColumn = len([]rune(d.name.Text))
+	if spec.mode == saveFile {
+		d.name.selectStem()
+	}
 	d.name.Refresh()
 }
 
@@ -687,6 +690,20 @@ func (e *nameEntry) TypedShortcut(s fyne.Shortcut) {
 		return
 	}
 	e.Entry.TypedShortcut(s)
+}
+
+// selectStem selects the name before its extension, so typing replaces it
+// and keeps ".gruvbox3" or ".wav". Fyne has no selection API, so this is a
+// shift+Home from the end of the stem.
+func (e *nameEntry) selectStem() {
+	stem := len([]rune(strings.TrimSuffix(e.Text, filepath.Ext(e.Text))))
+	if stem == 0 {
+		return
+	}
+	e.CursorRow, e.CursorColumn = 0, stem
+	e.Entry.KeyDown(&fyne.KeyEvent{Name: desktop.KeyShiftLeft})
+	e.Entry.TypedKey(&fyne.KeyEvent{Name: fyne.KeyHome})
+	e.Entry.KeyUp(&fyne.KeyEvent{Name: desktop.KeyShiftLeft})
 }
 
 // AcceptsTab keeps Tab for the dialog (it moves between the list and the

@@ -21,7 +21,7 @@ var openURL = func(link *url.URL) error { return fyne.CurrentApp().OpenURL(link)
 // Enter and Escape both just close it; only the button or link opens a browser.
 func (u *UI) showAbout() {
 	name := widget.NewLabelWithStyle("Gruvbox v"+config.Version, fyne.TextAlignLeading, fyne.TextStyle{Bold: true, Monospace: true})
-	pitch := widget.NewLabel("A desktop groovebox: TB-303-style acid voices, a Dual synth, analog-modelled drums, a sampler and per-track effects.\n\nIf Gruvbox makes you a groove worth keeping, you can buy me a coffee on Ko-fi. It keeps the updates coming. Thank you!")
+	pitch := widget.NewLabel("A desktop groovebox: TB-303-style acid voices, a Dual synth, an SH-101-style mono synth, analog-modelled drums, a sampler and per-track effects.\n\nIf Gruvbox makes you a groove worth keeping, you can buy me a coffee on Ko-fi. It keeps the updates coming. Thank you!")
 	pitch.Wrapping = fyne.TextWrapWord
 	link, _ := url.Parse(KofiURL)
 	hyperlink := widget.NewHyperlink("ko-fi.com/subbaan", link)

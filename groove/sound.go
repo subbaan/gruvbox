@@ -2,6 +2,7 @@ package groove
 
 import (
 	"fmt"
+	"github.com/subbaan/gruvbox/synth"
 	"math/rand/v2"
 )
 
@@ -25,6 +26,8 @@ func LFOTargets(kind Kind) []string {
 	switch kind {
 	case Dual:
 		return []string{"None", "Cutoff", "Resonance", "Pitch", "Pulse width", "Oscillator 2 detune", "Oscillator 2 level", "Filter drive", "Volume"}
+	case SH101:
+		return append([]string(nil), synth.SH101LFOTargets...)
 	case Acid:
 		return []string{"None", "Cutoff", "Resonance", "Pitch", "Envelope", "Pulse width", "Volume"}
 	case Kick:
@@ -68,7 +71,7 @@ func archetypeChance(kind Kind) float64 {
 	switch kind {
 	case Acid:
 		return .85
-	case Dual:
+	case Dual, SH101:
 		return .75
 	case Sampler:
 		return 0
@@ -82,6 +85,11 @@ func archetypeChance(kind Kind) float64 {
 func randomiseKeeps(kind Kind) []string {
 	if kind == Dual {
 		return []string{"tune", "osc2_tune", "amp_attack", "amp_sustain", "amp_release"}
+	}
+	if kind == SH101 {
+		// Range keeps the line's octave; the VCA mode and sustain/release
+		// keep the note shapes a pattern was written for.
+		return []string{"tune", "range", "vca_mode", "sustain", "release"}
 	}
 	if kind == Tom || kind == Kick || kind == Snare || kind == Clap || kind == Acid {
 		return []string{"tune"}
@@ -141,6 +149,31 @@ func RandomiseSoundFrom(t *Track, r *rand.Rand) string {
 		set("amp_decay", .12, .6)
 		set("amp_release", .06, .4)
 		set("filter_decay", .08, .7)
+	case SH101:
+		set("saw", 0, 1)
+		set("pulse", 0, 1)
+		if t.Parameters["saw"]+t.Parameters["pulse"] < .5 {
+			t.Parameters["saw"] = .8
+		}
+		set("sub", 0, .7)
+		set("pw", 0, .8)
+		t.Parameters["pwm_source"] = float64(r.IntN(3))
+		t.Parameters["sub_mode"] = float64(r.IntN(3))
+		set("cutoff", .2, .7)
+		set("resonance", .05, .8)
+		set("env_amount", .1, .8)
+		set("keytrack", .2, .8)
+		set("attack", .0015, .01)
+		set("decay", .08, .8)
+		t.Parameters["noise"], t.Parameters["vco_lfo"], t.Parameters["filter_lfo"] = 0, 0, 0
+		if r.Float64() < .2 {
+			set("filter_lfo", .05, .35)
+		}
+		if r.Float64() < .1 {
+			set("vco_lfo", .05, .15)
+		}
+		set("lfo_rate", .3, .7)
+		t.Parameters["lfo_wave"] = float64(r.IntN(4))
 	case Acid:
 		set("cutoff", .3, .9)
 		set("resonance", .2, .9)

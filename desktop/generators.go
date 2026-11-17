@@ -135,6 +135,8 @@ func lockGroups(t groove.Track) []lockGroup {
 	groups := []lockGroup{}
 	if t.Kind == groove.Dual {
 		groups = []lockGroup{{name: "Synth / Oscillators"}, {name: "Synth / Filter"}, {name: "Synth / Amp envelope"}, {name: "Synth / Filter envelope"}, {name: "Synth / Glide & accent"}}
+	} else if t.Kind == groove.SH101 {
+		groups = []lockGroup{{name: "SH-101 / VCO and mixer"}, {name: "SH-101 / VCF"}, {name: "SH-101 / Envelope"}, {name: "SH-101 / LFO, portamento & accent"}}
 	} else {
 		groups = append(groups, lockGroup{name: "Instrument"})
 	}
@@ -153,6 +155,16 @@ func lockGroups(t groove.Track) []lockGroup {
 				index = 4
 			case p.ID == "cutoff" || p.ID == "resonance" || p.ID == "drive" || p.ID == "env_amount" || p.ID == "keytrack":
 				index = 1
+			}
+		}
+		if t.Kind == groove.SH101 {
+			switch p.ID {
+			case "cutoff", "resonance", "env_amount", "filter_lfo", "keytrack":
+				index = 1
+			case "attack", "decay", "sustain", "release":
+				index = 2
+			case "lfo_rate", "glide", "accent":
+				index = 3
 			}
 		}
 		groups[index].parameters = append(groups[index].parameters, p)

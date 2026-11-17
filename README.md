@@ -1,6 +1,6 @@
 # Gruvbox - Desktop Groovebox
 
-Version: 3.0.0-alpha.54
+Version: 3.0.0-alpha.61
 
 **A groovebox that starts with a good groove, and keeps it moving.**
 
@@ -58,6 +58,96 @@ These loops are straight out of Gruvbox: randomised patterns exported with
 
 ## Latest additions
 
+**Seamless loop export (alpha.61):** pattern exports (whole mix or one track)
+now default to **Effect tail: Loop (wrap tail onto the start)**. The loop
+plays silently first, for at least the **Longest tail** time and in whole
+cycles, so reverb and delay from the previous pass are already sounding at
+the start. Then exactly one loop is recorded, and the file loops in a sampler
+or DAW without a gap or a dry first beat. **Add tail at end** (the default
+for a song) and **No tail** are the other choices. If the tracks have
+different lengths or use "every N" steps, the silent part covers the whole
+cycle, so the recorded loop starts with every track on step 1, as a plain
+export does.
+
+**Saving, track export and beat lines (alpha.59):**
+- **Saving:** the save dialog selects the name without its extension, so
+  typing replaces it and keeps `.gruvbox3`. A groove that has no file yet is
+  named after its style, key and tempo (for example
+  `acid-a-minor-128bpm.gruvbox3`, numbered if that is taken) instead of
+  "untitled".
+- **No accidental overwrites:** after **Randomise**, **Grow into a track**,
+  **Jam** or restoring from groove history, **Ctrl+S** asks before replacing
+  the file you saved: **Save as new…** (Enter), **Overwrite** or **Cancel**.
+- **Render a track to WAV:** right-click a track name, **Render this track
+  to WAV ▸ <track> only · selected pattern… / full song…**. It renders that
+  track alone (as if soloed, through the master bus; no need to mute the
+  others) to `<groove>-<track>-pattern-A1.wav` or
+  `…-song.wav`.
+- **Piano roll beat lines:** each quarter note has a lit column, a brighter
+  step number and a line before it, with a stronger line at each bar. They
+  follow the pattern's step size.
+
+**SH-101 (alpha.58):** a new mono synth track modelled on the Roland
+SH-101. Add it in **+ Track**.
+- **VCO and mixer:** one oscillator with a 16'/8'/4'/2' range switch. Saw,
+  pulse, sub-oscillator and noise each have a level and play together. The
+  sub is locked to the oscillator: a square one or two octaves down, or a
+  narrow pulse two octaves down. **Pulse width mod** sets the width by hand
+  (Manual), or lets the LFO or the envelope sweep it as far as the slider says.
+  **Pitch LFO** adds vibrato, up to a siren.
+- **VCF:** a 24 dB four-pole low-pass that self-oscillates at full
+  resonance, with envelope, LFO and key-tracking amounts.
+- **Envelope and VCA:** one ADSR shapes both the filter and the level, as on
+  the original. **Amp** follows the envelope or just the gate.
+  **Envelope trigger:** **Gate** holds through slide steps, **Gate + trigger**
+  restarts on every note, and **LFO** repeats it while a note is held, for
+  trills.
+- **LFO:** its own rate and a triangle, square, random (sample and hold) or
+  noise wave. The two track LFOs are there too.
+- **Portamento:** exponential. **Off**, **On** (every note) or **Auto**
+  (slide steps only).
+- **Accent:** the sequencer's accent flag opens the filter and lifts the
+  level. The original has no accent.
+- **Sounds:** eleven starting sounds in **Sound → Presets…**: 101 bass, Sub
+  pressure, Acid 101, Rubber pluck, PWM lead, Squelch stab, Trill, Siren,
+  Noise zap, Hollow organ and Sample and hold.
+- **In grooves:** it joins them like the Dual: **+ Track** gives it the
+  style's part (bass, pad, counter line, stabs or layer) with a fitting
+  sound, and **G** writes the part. New grooves sometimes use an SH-101 in
+  the Dual's place.
+
+**Answering the bass (alpha.57):** counter lines, stabs and second 303
+lines now play in the bass line's gaps instead of on top of it. A note
+that would start with a bass note moves a step later or earlier into a rest;
+a few shared hits stay, mostly on a bar's first beat. Over a busy bass a line
+loses no more than half its notes. Pads still ring over the bass, and layers
+still double it. This applies to **G**, to new grooves and Randomise, and to
+lines Jam brings in or rewrites. In tests, the share of counter-line notes
+landing on bass notes fell from 75–100% to 0–33%.
+
+**Fit groove (alpha.56):** new parts now fit the groove you are in. Each
+groove remembers its style (Dub, Acid…) and each synth its part in it (lead,
+bass, second line, pad, counter line, stabs or layer).
+- **+ Track** sets a new track up the way the style would: the groove's loop
+  length, and the style's sound, level and effects for that part. A Dual added
+  to a Dub groove comes in as a quiet, delayed pad or counter line, not a loud
+  dry second bass.
+- **G** (and the first inspector button, **Fit groove**) writes a part that
+  suits the groove: the style's patterns for a drum, and for a synth a line in
+  its role's register. Anything that is not the bass sits at least an octave
+  above the bass line, pads hold their notes, and counter lines and stabs
+  play in the bass's gaps (alpha.57). The other generators
+  (Bassline, Sparse, Busy…) are unchanged.
+- Jam brings silent synths in, and rephrases Duals, in their role too. New
+  grooves keep their pads and counter lines an octave clear of the lead.
+- Projects and grooves from before alpha.56 have no style: Fit still matches
+  the loop length and keeps new lines out of the bass's register.
+
+**New groove (alpha.55):** **≡ → New groove** or **Ctrl+N** starts again
+with a fresh random groove, just like launching the app: playback stops,
+Song mode and Jam switch off, and unsaved changes are confirmed first. The
+fixed starting layouts moved to **≡ → New from template ▸**.
+
 **Master bus (alpha.54):** playback and WAV export now go through a master
 stage: +9 dB of make-up gain and a 1.4 ms look-ahead peak limiter with a
 -1 dBFS ceiling, in place of the old hard clip at ±0.98. Generated grooves
@@ -69,7 +159,8 @@ cleanly: export removes the look-ahead delay.
 **Dual synth** is the new SH-101-inspired mono foundation: two oscillators
 (saw/pulse/triangle/sine), a pulse sub and noise, a driven resonant 12/24 dB
 low-pass filter, separate amp/filter ADSRs, glide and legato. Add it in **+ Track**,
-press **Bassline**, then try **Sound → Presets…**. Six starting sounds cover bass,
+press **G** (Fit groove) for a part that suits the groove, or **Bassline** for a
+bass line, then try **Sound → Presets…**. Six starting sounds cover bass,
 plucks, detuned leads, a dub interval and a slow pad. Expand the Sound sections
 for oscillator/envelope controls; time sliders use a logarithmic scale.
 Long notes hold the gate, and slide flags glide between adjacent notes; choose
@@ -81,6 +172,11 @@ polyphony are still to come.
 
 Clap, Rimshot, Tom and Crash are available in **+ Track**, with live sound controls, dual LFOs, randomisation and parameter locks. Toms support pitched notes in the piano roll and a Bassline generator; Crash has a downbeat generator.
 
+**SH-101** is a mono synth modelled on the Roland original: one VCO mixing
+saw, pulse, a locked sub-oscillator and noise, a self-oscillating 24 dB
+filter, one envelope, its own LFO and exponential portamento. See Latest
+additions for the controls.
+
 For a Tom bassline, add **Tom**, choose **Sound → Bass tone**, then enter notes in **Piano roll** or press **Bassline** at the top of the inspector. Bass tone tunes the root to C2 (65.41 Hz), removes the sweep and noise, and disables the LFOs. Adjust decay, sweep, attack and LFOs to taste. Notes transpose relative to C2; existing Tom patterns at C2 retain their sound. Root pitch, Tune and pitch locks still apply.
 
 Sampler Sound controls include live gain, whole-sample peak normalization and fades following the trimmed region (including reverse). These settings are saved and undoable; the original WAV stays intact.
@@ -88,13 +184,13 @@ Sampler Sound controls include live gain, whole-sample peak normalization and fa
 ## Gruvbox 3 alpha
 
 ```bash
-go build -o gruvbox
+go build -trimpath -o gruvbox
 ./gruvbox
 ```
 
 The GUI alpha includes:
 
-- Every launch, and **≡ → New ▸ Random groove**, starts a fresh groove in a
+- Every launch, and **≡ → New groove** (**Ctrl+N**), starts a fresh groove in a
   random style: Acid, Minimal, Electro, Dub, Hypnotic or Broken. The style
   picks the tempo, swing, key and length (one, two or four bars; 303 lines
   develop across the bars and drums vary towards the end of a phrase), how the two 303s and the drums are written
@@ -171,7 +267,8 @@ The GUI alpha includes:
 
 - Dynamic TB-303, kick, snare, open/closed hat, clap, rimshot, tom and crash tracks: add, duplicate, remove,
   reorder and rename. **+ Track** opens a dropdown; selecting an instrument adds
-  it immediately. Right-click a track name to rename, duplicate, recolour, move or
+  it immediately, at the groove's loop length and, in a generated groove, with
+  the style's sound for that part. Press **G** to write it a part that fits. Right-click a track name to rename, duplicate, recolour, move or
   remove it; the **M** / **S** chips beside the name mute and solo. Each track has its own voice, mixer state and eight patterns.
 - The 303 has a bank of 32 built-in sounds in **Sound → Presets…**, each a
   voice setting with its own pedals and sometimes an LFO: squelch and classic
@@ -206,7 +303,7 @@ The GUI alpha includes:
 - Dynamic sampler tracks with mono/stereo WAV loading, waveform trim markers,
   pitched notes, reverse and one-shot/gate/loop playback. Samples are embedded
   in saved projects; loading, clearing and trim changes support undo/redo.
-- Step sequencer and a three-octave piano roll (compact rows shaded like a keyboard, with a line at each octave) with octave navigation and draggable notes sharing the same note data. The roll centres itself and scrolls to the selected track's notes when you change track or pattern; Octave −/+ move it freely after that.
+- Step sequencer and a three-octave piano roll (compact rows shaded like a keyboard, with a line at each octave, and a lit column and line on each quarter note) with octave navigation and draggable notes sharing the same note data. The roll centres itself and scrolls to the selected track's notes when you change track or pattern; Octave −/+ move it freely after that.
   Left-click toggles/enters notes; right-click selects a step for inspection.
   **Shift-click** selects multiple notes; drag a selected note to move the phrase.
   Select all, Clear selection, Duplicate, transpose ±1/±12 and Delete are below
@@ -304,7 +401,9 @@ The GUI alpha includes:
 - Contextual generation, mutation and variation with undo/redo. Variation copies
   the current scene to the next slot and mutates the selected part.
   Each project has a key, chosen by its first melodic generation (or by the
-  random groove) and saved with it. **Acid**, **Sparse** and **Busy** on a 303,
+  random groove) and saved with it, along with the groove's style.
+  **Fit groove** (**G**), first on every track, writes the part the style
+  would: see Latest additions. **Acid**, **Sparse** and **Busy** on a 303,
   and **Bassline** on the Dual synth or Tom, write motif-based phrases in that
   key using the Phrase engine, so separate parts agree; **Random** still scatters
   notes freely. On drums, **Random** picks a pattern family and varies it. The
@@ -362,8 +461,11 @@ menu and status lines name slots the same way. Projects saved in alpha.50
 or earlier open with their 8 patterns in bank A. Blank slots take almost no
 room in the file, but alpha.50 and earlier can't open projects saved now. **Steps** page buttons (or `[` / `]`) move between
 16-step pages; pages with no notes are dimmed and `▸` marks the page that is
-playing. Ctrl+Z undoes; Ctrl+Shift+Z or Ctrl+Y redoes. Ctrl+S saves straight to the project's file, asking for a path only
-the first time; Ctrl+Shift+S or **Save as…** picks a new one. Sliders apply live
+playing. Ctrl+Z undoes; Ctrl+Shift+Z or Ctrl+Y redoes. Ctrl+N starts a fresh
+groove (as at launch). Ctrl+S saves straight to the project's file, asking for a path only
+the first time; Ctrl+Shift+S or **Save as…** picks a new one. After a new
+groove is generated over a saved one (Randomise, Grow, Jam, groove history),
+Ctrl+S asks whether to save it as a new file or overwrite the old one. Sliders apply live
 while you drag; release finishes one undo entry for the whole gesture. Text
 fields apply on Enter or when you click away. The **?** buttons show help, and
 the one in the top bar lists every keyboard shortcut.
@@ -471,9 +573,14 @@ into an unused slot with undo, including after Stop. Manual pattern selection
 cancels a pending cue; Stop clears pending/playing cues.
 
 **≡ → Export WAV** writes the selected pattern or full song to a stereo 16-bit WAV at
-44.1 kHz, with an optional 0–10 second effect tail. Export runs independently of
+44.1 kHz. **Effect tail** chooses what happens to reverb and delay tails:
+**Loop (wrap tail onto the start)** (the default for a pattern) makes a
+seamless one-loop file, **Add tail at end** (the default for a song) adds up
+to 10 seconds for the effects to ring out, and **No tail** stops at the end of
+the music. Export runs independently of
 live playback and editing. Closing the export window cancels; failed or cancelled
-exports preserve an existing destination.
+exports preserve an existing destination. To export one track, right-click its
+name and choose **Render this track to WAV**; only that track is rendered.
 
 This is an early alpha. Destructive sample editing, broader performance macros,
 additional FX/modulation, chord editing/polyphony and plugin hosting are upcoming
@@ -589,7 +696,7 @@ OpenGL, X11 and ALSA development files:
 ```bash
 git clone https://github.com/subbaan/gruvbox.git
 cd gruvbox
-go build -o gruvbox
+go build -trimpath -o gruvbox
 ./gruvbox --version
 go test ./...
 ```

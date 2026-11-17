@@ -200,11 +200,11 @@ func (u *UI) rebuildInspector() {
 	if t.Kind == groove.Sampler {
 		sound.Add(u.samplePanel(t))
 	}
-	if t.Kind == groove.Dual {
+	if t.Kind == groove.Dual || t.Kind == groove.SH101 {
 		sound.Add(u.dualSoundPanel(t))
 	}
 	for _, param := range groove.Parameters(t.Kind) {
-		if t.Kind == groove.Dual {
+		if t.Kind == groove.Dual || t.Kind == groove.SH101 {
 			continue
 		}
 		if t.Kind == groove.Sampler && param.ID != "pitch" {
@@ -222,7 +222,7 @@ func (u *UI) rebuildInspector() {
 		stepPanel.Add(u.boundSliderFormat("Note", 0, 127, 1, func() float64 { return float64(step().Note) }, func(v float64) string { return noteName(int(v)) }, func(v float64) { stepEdit("Note", func(s *groove.Step) { s.Note = int(v) }) }))
 	}
 	if t.Kind.Capabilities().NoteLengths {
-		stepPanel.Add(u.withHelp(u.boundSlider("Length (steps)", 1, 64, 1, func() float64 { return float64(step().GateSteps()) }, func(v float64) { stepEdit("Note length", func(s *groove.Step) { s.Length = int(v) }) }), "Length controls the gate; a later note retriggers the voice. Sampler length applies in Gate mode. Dual synth releases its envelopes at gate end; the 303 rings into its decay unless its Gate control is below 1, when it releases after Gate × the length."))
+		stepPanel.Add(u.withHelp(u.boundSlider("Length (steps)", 1, 64, 1, func() float64 { return float64(step().GateSteps()) }, func(v float64) { stepEdit("Note length", func(s *groove.Step) { s.Length = int(v) }) }), "Length controls the gate; a later note retriggers the voice. Sampler length applies in Gate mode. Dual synth and SH-101 release their envelopes at gate end; the 303 rings into its decay unless its Gate control is below 1, when it releases after Gate × the length."))
 	}
 	stepPanel.Add(u.boundSlider("Velocity", 0, 1, .01, func() float64 { return step().Velocity }, func(v float64) { stepEdit("Velocity", func(s *groove.Step) { s.Velocity = v }) }))
 	stepPanel.Add(u.boundSlider("Probability", 0, 1, .01, func() float64 { return step().Probability }, func(v float64) { stepEdit("Probability", func(s *groove.Step) { s.Probability = v }) }))

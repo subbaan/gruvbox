@@ -211,6 +211,12 @@ func TestScreenshots(t *testing.T) {
 	shot("confirm")
 	u.modals["Unsaved groove"].Close()
 	u.hideToast()
+	path := u.path
+	u.path, u.regenerated = filepath.Join(t.TempDir(), "night-drive.gruvbox3"), true
+	u.save()
+	shot("save-new")
+	u.modals["New groove since last save"].Close()
+	u.path, u.regenerated = path, false
 	u.player.Publish(u.session.Project)
 	u.player.SetPlaying(true)
 	var block [735 * 2]float32
@@ -266,6 +272,13 @@ func TestScreenshots(t *testing.T) {
 	u.refresh()
 	shot("pedals")
 	u.inspectorTabs.SelectIndex(0)
+	u.addTrackOf(groove.SH101)
+	u.dualAccordion.Open(1)
+	u.refresh()
+	shot("sh101")
+	u.undo()
+	u.inspectorKey = ""
+	u.refresh()
 	saved := startupProject
 	startupProject = randomStartup
 	for n := 1; n <= 3; n++ {

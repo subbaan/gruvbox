@@ -37,6 +37,7 @@ type partRecipe struct {
 	patches []string // bank sounds (FactorySounds names) to choose from
 	hold    bool     // notes ring on to the next one (pads)
 	level   float64  // track level, if set
+	role    string   // a Dual part's role (Track.Role)
 }
 
 type GrooveStyle struct {
@@ -97,18 +98,49 @@ func (s GrooveStyle) extra(kind Kind) (extraPart, bool) {
 // Dual synth parts. "Layer" doubles the 303 lead an octave down; hold lets
 // notes ring to the next one, for pads.
 var (
-	dualCounter = partRecipe{level: .36, patch: .6, patches: []string{"Pulse pluck", "Detuned lead"}, actions: []string{"Sparse"}, octave: 12,
+	dualCounter = partRecipe{role: "counter", level: .36, patch: .6, patches: []string{"Pulse pluck", "Detuned lead"}, actions: []string{"Sparse"}, octave: 12,
 		sound: map[string]span{"cutoff": {.35, .6}, "resonance": {.25, .55}, "env_amount": {.3, .6}, "amp_decay": {.12, .3}, "amp_sustain": {.1, .4}},
 		fx:    []fxChance{delayDotted, room}}
-	dualStab = partRecipe{level: .36, patch: .6, patches: []string{"Pulse pluck", "Detuned lead"}, actions: []string{"Busy", "Sparse"}, octave: 12,
+	dualStab = partRecipe{role: "stab", level: .36, patch: .6, patches: []string{"Pulse pluck", "Detuned lead"}, actions: []string{"Busy", "Sparse"}, octave: 12,
 		sound: map[string]span{"cutoff": {.4, .65}, "resonance": {.3, .6}, "env_amount": {.4, .7}, "amp_decay": {.06, .15}, "amp_sustain": {0, .1}, "amp_release": {.03, .08}},
 		fx:    []fxChance{chorus, delayEighth}}
-	dualPad = partRecipe{level: .34, patch: .6, patches: []string{"Slow pad", "Dub interval"}, actions: []string{"Sparse"}, octave: 12, hold: true,
+	dualPad = partRecipe{role: "pad", level: .34, patch: .6, patches: []string{"Slow pad", "Dub interval"}, actions: []string{"Sparse"}, octave: 12, hold: true,
 		sound: map[string]span{"cutoff": {.25, .45}, "resonance": {.15, .4}, "amp_attack": {.05, .3}, "amp_sustain": {.5, .8}, "amp_release": {.3, .8}, "env_amount": {.1, .3}},
 		fx:    []fxChance{{Delay, .9, map[string]span{"division": {.1875, .1875}, "feedback": {.45, .65}, "mix": {.2, .35}}}, chorus, room}}
-	dualLayer = partRecipe{level: .28, patch: .5, patches: []string{"Rounded mono", "Rubber bass"}, actions: []string{"Layer"},
+	dualLayer = partRecipe{role: "layer", level: .28, patch: .5, patches: []string{"Rounded mono", "Rubber bass"}, actions: []string{"Layer"},
 		sound: map[string]span{"cutoff": {.2, .35}, "resonance": {.1, .3}, "detune": {8, 16}, "osc2_level": {.35, .6}, "sub": {.3, .55}, "amp_decay": {.15, .35}}}
 )
+
+// sh101Parts are the SH-101's sounds for each role in a groove. The notes
+// (actions, octave, held notes) and level come from the style's own recipe for
+// the role; see sh101Recipe.
+var sh101Parts = map[string]partRecipe{
+	"bass": {patch: .7, patches: []string{"101 bass", "Sub pressure", "Acid 101", "Rubber pluck"},
+		sound: map[string]span{"cutoff": {.2, .4}, "resonance": {.2, .6}, "env_amount": {.3, .7}, "decay": {.12, .4}, "sustain": {0, .3}, "sub": {.4, .8}}},
+	"counter": {patch: .6, patches: []string{"PWM lead", "Rubber pluck", "Trill", "Sample and hold"},
+		sound: map[string]span{"cutoff": {.35, .6}, "resonance": {.2, .5}, "env_amount": {.3, .6}, "decay": {.15, .4}, "sustain": {.1, .4}},
+		fx:    []fxChance{delayDotted, room}},
+	"stab": {patch: .6, patches: []string{"Squelch stab", "Rubber pluck", "Trill"},
+		sound: map[string]span{"cutoff": {.35, .6}, "resonance": {.4, .7}, "env_amount": {.5, .8}, "decay": {.06, .15}, "sustain": {0, .1}},
+		fx:    []fxChance{chorus, delayEighth}},
+	"pad": {patch: .6, patches: []string{"Hollow organ", "PWM lead", "Siren"},
+		sound: map[string]span{"cutoff": {.3, .5}, "resonance": {.1, .35}, "env_amount": {.1, .3}, "attack": {.05, .3}, "sustain": {.5, .8}, "release": {.3, .8}, "pulse": {.6, .9}, "saw": {.2, .5}, "pwm_source": {1, 1}},
+		fx:    []fxChance{{Delay, .9, map[string]span{"division": {.1875, .1875}, "feedback": {.45, .65}, "mix": {.2, .35}}}, chorus, room}},
+	"layer": {patch: .5, patches: []string{"Sub pressure", "101 bass"},
+		sound: map[string]span{"cutoff": {.2, .35}, "resonance": {.1, .3}, "sub": {.5, .8}, "decay": {.15, .35}}},
+}
+
+// sh101Recipe is the SH-101's recipe for a role: the notes and level of the
+// style's part for that role (as a Dual would play it), with an SH-101 sound.
+func sh101Recipe(role string, style GrooveStyle, styled bool) partRecipe {
+	notes := roleRecipe(Dual, role, style, styled)
+	part, ok := sh101Parts[role]
+	if !ok {
+		part = sh101Parts["counter"]
+	}
+	part.actions, part.octave, part.hold, part.role, part.level = notes.actions, notes.octave, notes.hold, role, notes.level
+	return part
+}
 
 var delayEighth = fxChance{Delay, .6, map[string]span{"division": {.125, .125}, "feedback": {.2, .4}, "mix": {.12, .22}}}
 var delayDotted = fxChance{Delay, .8, map[string]span{"division": {.1875, .1875}, "feedback": {.35, .55}, "mix": {.18, .3}}}
@@ -273,7 +305,7 @@ func grooveStatus(style GrooveStyle, p Project, sounds []string) string {
 	for i, name := range sounds {
 		switch {
 		case name == "":
-		case p.Tracks[i].Kind == Acid || p.Tracks[i].Kind == Dual:
+		case p.Tracks[i].Kind.synthPart():
 			info += fmt.Sprintf(" · %s: %s", p.Tracks[i].Name, name)
 		default:
 			kit = append(kit, name)
@@ -297,7 +329,7 @@ type layoutPart struct {
 }
 
 // trackOrder is the order a new groove's tracks appear in.
-var trackOrder = []Kind{Acid, Dual, Kick, Snare, Clap, ClosedHat, OpenHat, Rimshot, Tom, Crash}
+var trackOrder = []Kind{Acid, Dual, SH101, Kick, Snare, Clap, ClosedHat, OpenHat, Rimshot, Tom, Crash}
 
 // chooseLayout draws a layout from the style, in trackOrder.
 func (s GrooveStyle) chooseLayout(r *rand.Rand, steps int) []layoutPart {
@@ -316,6 +348,10 @@ func (s GrooveStyle) chooseLayout(r *rand.Rand, steps int) []layoutPart {
 	second, other := Acid, Dual
 	if r.Float64() < l.dual {
 		second, other = Dual, Acid
+		// Some grooves take an SH-101 in the Dual's place.
+		if r.Float64() < .4 {
+			second = SH101
+		}
 	}
 	add(second, true)
 	switch x := r.Float64() * (l.snare + l.clap + l.both); {
@@ -407,6 +443,8 @@ func (s GrooveStyle) recipeFor(kind Kind, acids int, r *rand.Rand) partRecipe {
 		return s.second
 	case Dual:
 		return s.dual[r.IntN(len(s.dual))]
+	case SH101:
+		return sh101Recipe(s.dual[r.IntN(len(s.dual))].role, s, true)
 	}
 	if x, ok := s.extra(kind); ok {
 		return x.recipe
@@ -419,6 +457,7 @@ func (s GrooveStyle) recipeFor(kind Kind, acids int, r *rand.Rand) partRecipe {
 func newGroove(style GrooveStyle, r *rand.Rand) (Project, []string) {
 	p := NewProject()
 	p.Tracks = nil
+	p.Style = style.Name
 	p.BPM = float64(int(style.bpm.pick(r)))
 	p.Swing = float64(int(style.swing.pick(r)*100)) / 100
 	key := RandomKey(r, style.scales)
@@ -448,6 +487,7 @@ func newGroove(style GrooveStyle, r *rand.Rand) (Project, []string) {
 		}
 		resetPatternSlot(t, 0, steps)
 		recipe := style.recipeFor(part.kind, acids, r)
+		t.Role = synthRole(part.kind, acids, recipe)
 		if part.kind == Acid {
 			acids++
 		}
@@ -570,7 +610,7 @@ func applyRecipePatch(t *Track, recipe partRecipe, r *rand.Rand) string {
 	jitterSound(t, r)
 	// Pitched parts keep their tuning so they stay in key; a drum takes its
 	// sound's tuning, which is part of its character.
-	if t.Kind == Acid || t.Kind == Dual || t.Kind == Tom {
+	if t.Kind.synthPart() || t.Kind == Tom {
 		t.Parameters["tune"] = tune
 	}
 	return preset.Name
@@ -638,6 +678,7 @@ func writeRecipeNotes(p *Project, t *Track, recipe partRecipe, r *rand.Rand, slo
 				s.Note = min(127, s.Note+recipe.octave)
 			}
 		}
+		placeAboveBass(p, t, slot, r)
 		if recipe.hold {
 			holdNotes(t.Patterns[slot].Steps)
 		}
@@ -742,7 +783,7 @@ const (
 	SynthParts            // 303s and dual synths
 )
 
-func (k Kind) synthPart() bool { return k == Acid || k == Dual }
+func (k Kind) synthPart() bool { return k == Acid || k == Dual || k == SH101 }
 
 // Rerolled reports whether a randomise of part changes t. Held tracks are
 // never changed.
@@ -790,10 +831,19 @@ func RandomiseGrooveParts(p *Project, r *rand.Rand, part GroovePart) string {
 	if !keptNotes || p.Key == nil {
 		p.Key = &key
 	}
+	p.Style = style.Name
 	sounds := make([]string, len(p.Tracks))
 	steps := style.bars[r.IntN(len(style.bars))] * 16
 	acid := 0
 	layers := []int{} // Dual layers, redone once every lead is written
+	// Parts above the bass written before it, placed again once it is. The
+	// rerolled parts are cleared first so none is placed against an old line.
+	early, bassWritten := []int{}, false
+	for i := range p.Tracks {
+		if part.Rerolled(p.Tracks[i]) {
+			resetPatternSlot(&p.Tracks[i], slot, steps)
+		}
+	}
 	for i := range p.Tracks {
 		t := &p.Tracks[i]
 		if !part.Rerolled(*t) {
@@ -815,6 +865,9 @@ func RandomiseGrooveParts(p *Project, r *rand.Rand, part GroovePart) string {
 		if t.Kind == Dual {
 			recipe, ok = style.dual[r.IntN(len(style.dual))], true
 		}
+		if t.Kind == SH101 {
+			recipe, ok = sh101Recipe(style.dual[r.IntN(len(style.dual))].role, style, true), true
+		}
 		if ok && !t.Kind.synthPart() && (r.Float64() >= style.playChance(*p, t.Kind) || t.Kind == Crash && steps < 32) {
 			recipe.actions = nil
 		}
@@ -823,11 +876,21 @@ func RandomiseGrooveParts(p *Project, r *rand.Rand, part GroovePart) string {
 			if acid == 0 {
 				recipe = style.lead
 			}
+			t.Role = synthRole(Acid, acid, recipe)
 			acid++
+		}
+		if t.Kind == Dual || t.Kind == SH101 {
+			t.Role = recipe.role
 		}
 		if ok {
 			jitterSound(t, r)
 			sounds[i] = applyRecipe(p, t, recipe, r, slot)
+			switch {
+			case t.Role == "lead" || t.Role == "bass":
+				bassWritten = true
+			case t.Kind.synthPart() && !bassWritten:
+				early = append(early, i)
+			}
 			if len(recipe.actions) == 1 && recipe.actions[0] == "Layer" {
 				layers = append(layers, i)
 			}
@@ -844,6 +907,9 @@ func RandomiseGrooveParts(p *Project, r *rand.Rand, part GroovePart) string {
 	for _, i := range layers {
 		resetPatternSlot(&p.Tracks[i], slot, steps)
 		layerLead(p, &p.Tracks[i], slot)
+	}
+	for _, i := range early {
+		placeAboveBass(p, &p.Tracks[i], slot, r)
 	}
 	info := grooveStatus(style, *p, sounds)
 	if len(held) > 0 {

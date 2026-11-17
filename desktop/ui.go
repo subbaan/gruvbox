@@ -1,6 +1,7 @@
 package desktop
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
+	"unicode"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -100,6 +102,7 @@ type UI struct {
 	mixer                              *fyne.Container
 	swing                              *widget.Slider
 	path                               string
+	regenerated                        bool // a new groove was made since the last save or open
 	audioError                         error
 	panels                             map[string]fyne.Window
 }
@@ -285,6 +288,7 @@ func (u *UI) content() fyne.CanvasObject {
 	u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyTab, Modifier: fyne.KeyModifierControl}, func(fyne.Shortcut) { u.cycleEditorTab(1) })
 	u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyTab, Modifier: fyne.KeyModifierControl | fyne.KeyModifierShift}, func(fyne.Shortcut) { u.cycleEditorTab(-1) })
 	u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyS, Modifier: fyne.KeyModifierControl}, func(fyne.Shortcut) { u.save() })
+	u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyN, Modifier: fyne.KeyModifierControl}, func(fyne.Shortcut) { u.startRandomGroove() })
 	u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyR, Modifier: fyne.KeyModifierControl}, func(fyne.Shortcut) { u.randomiseGroove() })
 	u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyR, Modifier: fyne.KeyModifierControl | fyne.KeyModifierShift}, func(fyne.Shortcut) { u.randomiseParts(groove.DrumParts) })
 	u.window.Canvas().AddShortcut(&desktop.CustomShortcut{KeyName: fyne.KeyG, Modifier: fyne.KeyModifierControl}, func(fyne.Shortcut) { u.growTrack() })
@@ -303,8 +307,8 @@ func (u *UI) content() fyne.CanvasObject {
 
 // showMainMenu opens the ≡ menu: project files, export, appearance, Ko-fi and About.
 func (u *UI) showMainMenu() {
-	newProject := fyne.NewMenuItem("New", nil)
-	newProject.ChildMenu = fyne.NewMenu("New project", u.templateItems()...)
+	fromTemplate := fyne.NewMenuItem("New from template", nil)
+	fromTemplate.ChildMenu = fyne.NewMenu("New from template", u.templateItems()...)
 	save := fyne.NewMenuItem("Save", u.save)
 	save.Shortcut = &desktop.CustomShortcut{KeyName: fyne.KeyS, Modifier: fyne.KeyModifierControl}
 	saveAs := fyne.NewMenuItem("Save as…", u.saveAs)
@@ -313,7 +317,7 @@ func (u *UI) showMainMenu() {
 	export.ChildMenu = fyne.NewMenu("Export WAV", u.exportItems()...)
 	randomAll := fyne.NewMenuItem("Randomise", nil)
 	randomAll.ChildMenu = fyne.NewMenu("Randomise", u.randomiseItems()...)
-	menu := fyne.NewMenu("Gruvbox", newProject, randomAll, fyne.NewMenuItem("Open…", u.open), save, saveAs, fyne.NewMenuItemSeparator(), export, fyne.NewMenuItemSeparator(), fyne.NewMenuItem("Appearance…", u.settings), fyne.NewMenuItemSeparator(), fyne.NewMenuItem("Support on Ko-fi…", u.openKofi), fyne.NewMenuItem("About Gruvbox…", u.showAbout))
+	menu := fyne.NewMenu("Gruvbox", u.newGrooveItem(), fromTemplate, randomAll, fyne.NewMenuItem("Open…", u.open), save, saveAs, fyne.NewMenuItemSeparator(), export, fyne.NewMenuItemSeparator(), fyne.NewMenuItem("Appearance…", u.settings), fyne.NewMenuItemSeparator(), fyne.NewMenuItem("Support on Ko-fi…", u.openKofi), fyne.NewMenuItem("About Gruvbox…", u.showAbout))
 	pop := widget.NewPopUpMenu(menu, u.window.Canvas())
 	button := u.menuButton
 	pos := fyne.CurrentApp().Driver().AbsolutePositionForObject(button).Add(fyne.NewPos(button.Size().Width-pop.MinSize().Width, button.Size().Height))
@@ -471,6 +475,10 @@ func (u *UI) generate(action string) {
 	if u.selectedTrack() == nil {
 		return
 	}
+	if action == groove.FitAction {
+		u.fitPart()
+		return
+	}
 	u.edit(action, func(p *groove.Project) error {
 		if action == "Variation" {
 			next := groove.NextInBank(p.Pattern)
@@ -512,12 +520,7 @@ func (u *UI) addTrack() {
 	for _, kind := range groove.Kinds {
 		kind := kind
 		items = append(items, fyne.NewMenuItem(kind.Name(), func() {
-			u.edit("Add track", func(p *groove.Project) error {
-				t := groove.NewTrack(kind, len(p.Tracks))
-				p.Tracks = append(p.Tracks, t)
-				u.selected = t.ID
-				return nil
-			})
+			u.addTrackOf(kind)
 		}))
 	}
 	menu := widget.NewPopUpMenu(fyne.NewMenu("", items...), u.window.Canvas())
@@ -722,17 +725,9 @@ func (u *UI) openProject(path string) {
 				return
 			}
 			u.discardConfirm(func() {
-				u.player.SetPlaying(false)
-				u.player.SetSongMode(false)
-				u.player.StopAudition()
-				u.player.ClearPerformanceTake()
-				u.sampleViews = map[string]sampleView{}
-				u.session = groove.NewSession(p)
+				u.replaceProject(p, "")
 				u.path = path
-				u.selected = ""
-				u.selectedStep, u.page = 0, 0
-				u.player.Publish(p)
-				u.refresh()
+				u.regenerated = false
 				u.rememberFile("projects", path)
 				u.status.SetText("Opened " + path)
 			})
@@ -741,19 +736,92 @@ func (u *UI) openProject(path string) {
 }
 
 // save writes to the project's known path; a new project asks for one first.
+// After a new groove was generated over a saved one, it asks before
+// overwriting that file, so the old groove is not lost by mistake.
 func (u *UI) save() {
 	if u.path == "" {
 		u.saveAs()
 		return
 	}
+	if u.regenerated && u.session.Dirty() {
+		name := filepath.Base(u.path)
+		msg := widget.NewLabel(fmt.Sprintf("You generated a new groove since %s was saved. Save it as a new file, or overwrite %s?", name, name))
+		msg.Wrapping = fyne.TextWrapWord
+		u.choose("New groove since last save", "Save as new…", "Overwrite", "Cancel", msg, func(answer int) {
+			switch answer {
+			case acceptAnswer:
+				u.saveAsNamed(suggestedProjectName(u.session.Project, u.projectDir()))
+			case otherAnswer:
+				u.writeProject(u.path)
+			}
+		})
+		return
+	}
 	u.writeProject(u.path)
 }
+
+// saveAs offers the open file's name, or one made from the groove.
 func (u *UI) saveAs() {
-	name := "untitled.gruvbox3"
-	if u.path != "" {
+	name := suggestedProjectName(u.session.Project, u.projectDir())
+	if u.path != "" && !u.regenerated {
 		name = filepath.Base(u.path)
 	}
+	u.saveAsNamed(name)
+}
+func (u *UI) saveAsNamed(name string) {
 	u.chooseFile(fileSpec{title: "Save groove as", accept: "Save", mode: saveFile, kinds: []fileKind{grooveFiles}, dir: u.projectDir(), name: name}, u.writeProject)
+}
+
+// suggestedProjectName names a groove after its template or style, key and
+// tempo ("acid-a-minor-128bpm.gruvbox3"), numbered so it names no file in dir.
+func suggestedProjectName(p groove.Project, dir string) string {
+	stem := projectStem(p)
+	name := stem + ".gruvbox3"
+	for n := 2; ; n++ {
+		if _, err := os.Stat(filepath.Join(dir, name)); errors.Is(err, os.ErrNotExist) {
+			return name
+		}
+		name = fmt.Sprintf("%s-%d.gruvbox3", stem, n)
+	}
+}
+
+// projectStem is a file name for a groove that has none yet.
+func projectStem(p groove.Project) string {
+	var words []string
+	switch {
+	case p.Name != "" && p.Name != "Untitled groove":
+		words = append(words, p.Name)
+	case p.Style != "":
+		words = append(words, p.Style)
+	default:
+		words = append(words, "groove")
+	}
+	if p.Key != nil {
+		words = append(words, strings.ReplaceAll(p.Key.Name(), "#", " sharp"))
+	}
+	words = append(words, fmt.Sprintf("%.0fbpm", p.BPM))
+	return fileSlug(strings.Join(words, " "))
+}
+
+// fileSlug lowercases s and joins its letters and digits with dashes.
+func fileSlug(s string) string {
+	var b strings.Builder
+	dash := false
+	for _, r := range strings.ToLower(s) {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) {
+			if dash && b.Len() > 0 {
+				b.WriteByte('-')
+			}
+			b.WriteRune(r)
+			dash = false
+		} else {
+			dash = true
+		}
+	}
+	if b.Len() == 0 {
+		return "groove"
+	}
+	return b.String()
 }
 func (u *UI) writeProject(destination string) {
 	snapshot := u.session.Project.Clone()
@@ -770,6 +838,7 @@ func (u *UI) writeProject(destination string) {
 			}
 			if u.session == session {
 				u.path = destination
+				u.regenerated = false
 				u.session.MarkSavedProject(snapshot)
 				u.refresh()
 				u.rememberFile("projects", destination)
@@ -887,7 +956,7 @@ A  Accent     L  Slide     , .  Velocity down / up
 Ctrl+C / Ctrl+V  Copy / paste step (paste moves on)
 Ctrl+Shift+C / V  Copy / paste the track's pattern
 K  Lock mode (controls write step locks)
-G  Generate (first action)     R  Randomise sound
+G  Fit groove: a part that suits the groove     R  Randomise sound
 Ctrl+R  Randomise all: a fresh groove in this pattern
 Ctrl+Shift+R  Randomise drums only     Ctrl+Alt+R  Randomise 303s only
 H  Hold the track: randomising leaves it alone
@@ -901,6 +970,7 @@ Ctrl+Tab / Ctrl+Shift+Tab  Next / previous editor tab
 Esc  Close drawer or card, then leave lock mode
 Ctrl+D  Duplicate groove to empty slot
 Ctrl+Shift+P  Store pattern state
+Ctrl+N  New groove: start again with a fresh random groove
 Ctrl+S  Save     Ctrl+Shift+S  Save as
 
 Mouse

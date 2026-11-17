@@ -33,6 +33,23 @@ func (u *UI) confirm(title, accept, cancel string, content fyne.CanvasObject, ca
 // Enter in a field accepts; Escape or Cancel declines. One card per title.
 // An empty cancel label leaves out the cancel button (an information card).
 func (u *UI) confirmOn(canvas fyne.Canvas, title, accept, cancel string, content fyne.CanvasObject, callback func(bool)) {
+	u.cardOn(canvas, title, accept, "", cancel, content, func(answer int) { callback(answer == acceptAnswer) })
+}
+
+// Answers from a choice card.
+const (
+	cancelAnswer = iota
+	acceptAnswer
+	otherAnswer
+)
+
+// choose is a confirm card with a third button, other, between Cancel and
+// accept. Enter picks accept; Escape or Cancel report cancelAnswer.
+func (u *UI) choose(title, accept, other, cancel string, content fyne.CanvasObject, callback func(int)) {
+	u.cardOn(u.window.Canvas(), title, accept, other, cancel, content, callback)
+}
+
+func (u *UI) cardOn(canvas fyne.Canvas, title, accept, other, cancel string, content fyne.CanvasObject, callback func(int)) {
 	if u.modals == nil {
 		u.modals = map[string]*modal{}
 	}
@@ -41,7 +58,7 @@ func (u *UI) confirmOn(canvas fyne.Canvas, title, accept, cancel string, content
 	}
 	m := &modal{}
 	done := false
-	m.finish = func(ok bool) {
+	answer := func(a int) {
 		if done {
 			return
 		}
@@ -49,7 +66,14 @@ func (u *UI) confirmOn(canvas fyne.Canvas, title, accept, cancel string, content
 		m.pop.Hide()
 		delete(u.modals, title)
 		u.modalOrder = deleteModal(u.modalOrder, m)
-		callback(ok)
+		callback(a)
+	}
+	m.finish = func(ok bool) {
+		if ok {
+			answer(acceptAnswer)
+		} else {
+			answer(cancelAnswer)
+		}
 	}
 	acceptButton := widget.NewButton(accept, func() { m.finish(true) })
 	acceptButton.Importance = widget.HighImportance
@@ -74,6 +98,9 @@ func (u *UI) confirmOn(canvas fyne.Canvas, title, accept, cancel string, content
 	}
 	walk(content)
 	buttons := container.NewHBox(layout.NewSpacer(), cancelButton, acceptButton)
+	if other != "" {
+		buttons = container.NewHBox(layout.NewSpacer(), cancelButton, widget.NewButton(other, func() { answer(otherAnswer) }), acceptButton)
+	}
 	if cancel == "" {
 		buttons = container.NewHBox(layout.NewSpacer(), acceptButton)
 		acceptButton.Importance = widget.MediumImportance
